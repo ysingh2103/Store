@@ -1,0 +1,1361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Interactive 3D model of a retail head office and 23-store network: VLANs, SD-WAN with LTE failover, site-to-site VPN, POS traffic flows, and nine hands-on troubleshooting drills. Built by Yuvraj Singh.">
+<meta property="og:title" content="Retail Network Lab">
+<meta property="og:description" content="A 3D, clickable model of an HQ + 23-store retail network with live traffic flows and troubleshooting drills.">
+<meta property="og:type" content="website">
+<title>Knix Network Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: instrument-panel app. Left control panel + framed 3D stage; stacks (stage first) on phones. Single dark "comms room" look by choice. */
+:root{
+  --ink:#0b111c; --ink-2:#0f1726; --panel:#131d2d; --raise:#1a263a; --line:#26364f; --line-2:#33476a;
+  --fg:#e7edf6; --muted:#8fa0ba; --accent:#8fb4ff;
+  --ok:#4ed49b; --down:#ff5466; --warn:#ffa43a;
+  --pos:#f5c542; --staff:#5b9dff; --srv:#a7b8cc; --av:#ff8a65; --cam:#3fc9b5; --guest:#b48cff; --vpn:#6ee7ff; --wan:#dfe7f3; --trunk:#a9b8cf; --bt:#9ad0ff;
+  --display:"Chakra Petch", "Rajdhani", ui-sans-serif, system-ui, sans-serif;
+  --body:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0}
+html,body{height:100%}
+body{background:var(--ink);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.5}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{height:100%;display:grid;grid-template-columns:minmax(320px,380px) 1fr;gap:12px;padding-block:12px;padding-inline:16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
+.brand{padding:16px 18px 12px;border-bottom:1px solid var(--line)}
+.brand .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.brand h1{font-family:var(--display);font-weight:600;font-size:24px;letter-spacing:.02em;margin:2px 0 4px;text-wrap:balance}
+.brand p{margin:0;color:var(--muted);font-size:13px}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;background:none;border:0;padding:10px 6px;font-family:var(--display);font-weight:500;letter-spacing:.06em;text-transform:uppercase;font-size:12.5px;color:var(--muted);border-bottom:2px solid transparent}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.scroll{overflow:auto;min-height:0;flex:1;padding:14px 18px 22px;display:flex;flex-direction:column;gap:18px}
+h2{font-family:var(--display);font-weight:600;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.seg{display:flex;gap:4px;background:var(--ink-2);border:1px solid var(--line);border-radius:8px;padding:3px;margin-bottom:8px}
+.seg button{flex:1;background:none;border:0;border-radius:6px;padding:5px 4px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--raise);color:var(--fg)}
+.flows{display:grid;gap:6px}
+.flow{display:grid;grid-template-columns:10px 1fr;gap:10px;align-items:start;text-align:left;background:var(--ink-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.flow:hover{border-color:var(--line-2)}
+.flow[aria-pressed="true"]{border-color:var(--accent);background:var(--raise)}
+.flow .dot{width:10px;height:10px;border-radius:50%;margin-top:5px}
+.flow b{display:block;font-weight:500}
+.flow small{color:var(--muted);font-size:12px}
+.hops{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:0;border-left:1px dashed var(--line-2);margin-left:5px}
+.hops li{position:relative;padding:0 0 10px 16px}
+.hops li::before{content:"";position:absolute;left:-5px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--ink);border:2px solid var(--accent)}
+.hops b{font-weight:500;font-size:13px}
+.hops span{display:block;color:var(--muted);font-size:12.5px}
+.toggles{display:grid;gap:6px}
+.toggles label{display:flex;gap:8px;align-items:center;color:var(--fg);font-size:13px}
+.toggles input{accent-color:var(--accent)}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:12.5px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:8px}
+.sw{width:22px;height:4px;border-radius:2px;flex:none}
+.sw.dash{background:repeating-linear-gradient(90deg,currentColor 0 5px,transparent 5px 9px)!important;height:3px}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{padding:7px 9px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-family:var(--mono);font-weight:500;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+td.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.vtag{display:inline-flex;align-items:center;gap:6px}
+.vtag i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.notes{margin:0;padding-left:18px;color:var(--muted);font-size:13px;display:grid;gap:4px}
+.notes b{color:var(--fg);font-weight:500}
+/* incidents */
+.inc-list{display:grid;gap:8px}
+.inc{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;background:var(--ink-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.inc:hover{border-color:var(--line-2)}
+.sev{font-family:var(--mono);font-size:11px;padding:2px 6px;border-radius:4px;border:1px solid}
+.sev.p1{color:var(--down);border-color:color-mix(in srgb,var(--down) 50%,transparent)}
+.sev.p2{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 50%,transparent)}
+.sev.p3{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 50%,transparent)}
+.inc b{display:block;font-weight:500}
+.inc small{color:var(--muted);font-size:12px}
+.done{font-family:var(--mono);font-size:11px;color:var(--ok)}
+.btn{background:var(--raise);border:1px solid var(--line-2);border-radius:7px;padding:7px 12px;font-size:13px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:#0b111c;border-color:var(--accent);font-weight:600}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ticket{background:var(--ink-2);border:1px solid var(--line);border-left:3px solid var(--down);border-radius:8px;padding:12px 14px}
+.ticket .meta{font-family:var(--mono);font-size:11.5px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.ticket q{display:block;margin-top:6px;font-size:14.5px;quotes:none}
+.checks{display:grid;gap:6px}
+.check{background:var(--ink-2);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.check button{width:100%;text-align:left;background:none;border:0;padding:8px 11px;display:flex;gap:8px;align-items:center}
+.check button::before{content:"›";font-family:var(--mono);color:var(--accent)}
+.check[data-run] button{color:var(--muted)}
+.check .out{font-family:var(--mono);font-size:12.5px;padding:8px 11px 10px;border-top:1px solid var(--line);background:#0a1019;white-space:pre-wrap}
+.tag{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:4px;margin-bottom:4px}
+.tag.clue{color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}
+.tag.miss{color:var(--muted);background:color-mix(in srgb,var(--muted) 14%,transparent)}
+.tag.risk{color:var(--down);background:color-mix(in srgb,var(--down) 14%,transparent)}
+.opts{display:grid;gap:6px}
+.opts label{display:flex;gap:9px;align-items:flex-start;background:var(--ink-2);border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:13.5px}
+.opts input{margin-top:3px;accent-color:var(--accent)}
+.feedback{border-radius:8px;padding:10px 12px;font-size:13.5px}
+.feedback.bad{background:color-mix(in srgb,var(--down) 12%,transparent);border:1px solid color-mix(in srgb,var(--down) 40%,transparent)}
+.feedback.good{background:color-mix(in srgb,var(--ok) 10%,transparent);border:1px solid color-mix(in srgb,var(--ok) 40%,transparent)}
+.feedback h3{font-family:var(--display);font-size:15px;margin:0 0 6px}
+.feedback ol,.feedback ul{margin:4px 0 10px;padding-left:18px;display:grid;gap:3px}
+.say{font-style:italic;color:var(--fg);border-left:2px solid var(--accent);padding-left:10px}
+.score{font-family:var(--mono);font-size:12px;color:var(--muted)}
+/* stage */
+.stage{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;min-height:0;min-width:0;background:var(--ink)}
+#c{display:block;width:100%;height:100%;touch-action:none}
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;transform:translate(-50%,-100%);font-family:var(--mono);font-size:11px;white-space:nowrap;padding:2px 6px;border-radius:4px;background:rgba(11,17,28,.82);border:1px solid var(--line-2);color:var(--fg)}
+.lbl.down{border-color:var(--down);color:#ffd5da}
+.lbl.warn{border-color:var(--warn)}
+.lbl.sel{border-color:var(--accent)}
+.lbl.cloud{font-family:var(--display);font-size:12.5px;letter-spacing:.04em}
+.site-lbl{position:absolute;transform:translate(-50%,0);font-family:var(--display);font-weight:600;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg);white-space:nowrap;text-shadow:0 1px 6px #000}
+.site-lbl small{display:block;font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.04em;text-transform:none;color:var(--muted);text-align:center}
+.zone-lbl{position:absolute;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#6c7d98;white-space:nowrap}
+.views{position:absolute;top:46px;right:10px;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100% - 20px)}
+.views button{background:rgba(19,29,45,.88);border:1px solid var(--line-2);border-radius:6px;padding:4px 9px;font-family:var(--mono);font-size:11.5px}
+.views button:hover{border-color:var(--accent)}
+.health{position:absolute;top:10px;left:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px)}
+.chip{display:inline-flex;align-items:center;gap:6px;background:rgba(19,29,45,.88);border:1px solid var(--line-2);border-radius:20px;padding:3px 9px;font-family:var(--mono);font-size:11px}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.chip.down i{background:var(--down);box-shadow:0 0 8px var(--down)}
+.chip.warn i{background:var(--warn)}
+.hint{position:absolute;left:10px;bottom:10px;font-family:var(--mono);font-size:11px;color:var(--muted);background:rgba(11,17,28,.7);padding:3px 8px;border-radius:5px}
+#inspector{position:absolute;right:10px;bottom:10px;width:min(340px,calc(100% - 20px));max-height:calc(100% - 60px);overflow:auto;background:rgba(19,29,45,.96);border:1px solid var(--line-2);border-radius:10px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.ins-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.ins-head .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.ins-head h3{font-family:var(--display);font-size:17px;margin:1px 0 0;font-weight:600;text-wrap:balance}
+.x{background:none;border:1px solid var(--line-2);border-radius:6px;width:28px;height:28px;flex:none}
+.pill{display:inline-flex;gap:6px;align-items:center;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:10px;margin:8px 0;background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+.pill.down{background:color-mix(in srgb,var(--down) 16%,transparent);color:var(--down)}
+.pill.warn{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
+dl.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0 0 8px;font-size:12.5px}
+dl.kv dt{color:var(--muted);font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding-top:2px}
+dl.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+#inspector h4{font-family:var(--display);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 4px}
+#inspector p{margin:0;font-size:13px}
+#inspector ul,#inspector ol{margin:0;padding-left:18px;font-size:12.5px;display:grid;gap:2px}
+.conn{list-style:none;padding:0!important}
+.conn button{background:none;border:0;padding:1px 0;text-align:left;color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.conn span{color:var(--muted)}
+.credit{margin:6px 0 0!important;font-family:var(--mono);font-size:11.5px}
+.credit a,.brand a{color:var(--accent)}
+a.btn{text-decoration:none;color:var(--fg)}
+.brand-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chip.kpi{border-color:color-mix(in srgb,var(--accent) 45%,var(--line-2));color:var(--fg)}
+.views button.grow{border-color:color-mix(in srgb,#ffcf9a 60%,var(--line-2));color:#ffe2bd}
+.views button.grow:hover{border-color:#ffcf9a}
+#toast{position:absolute;left:50%;top:92px;transform:translateX(-50%);width:min(560px,calc(100% - 20px));background:rgba(19,29,45,.96);border:1px solid #ffcf9a;border-radius:10px;padding:10px 14px;font-size:13.5px;box-shadow:0 10px 30px rgba(0,0,0,.45);z-index:6}
+#toast b{color:#ffe2bd}
+#exitPresent{position:absolute;right:10px;bottom:10px;z-index:7}
+body.present .app{grid-template-columns:1fr}
+body.present aside.panel{display:none}
+body.present .stage{min-height:calc(100vh - 24px)}
+body.present #inspector{bottom:56px}
+.btn.sm{padding:3px 9px;font-size:11.5px;font-family:var(--mono)}
+#modeBtn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.role-list{display:grid;gap:8px}
+.role{background:var(--ink-2);border:1px solid var(--line);border-radius:8px;padding:11px 12px;display:grid;gap:7px}
+.role.on{border-color:var(--accent)}
+.role h3{font-family:var(--display);font-weight:600;font-size:15px;margin:0;text-wrap:balance}
+.role .jd{font-size:12.5px;color:var(--muted);margin:0}
+.role .where{font-size:12.5px;margin:0}
+.role .where b,.role .lbl2{font-family:var(--mono);font-weight:500;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.role ul{margin:0;padding-left:18px;font-size:13px;display:grid;gap:2px}
+#tour{position:absolute;left:10px;bottom:10px;width:min(400px,calc(100% - 20px));background:rgba(19,29,45,.97);border:1px solid var(--accent);border-radius:10px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.45);display:grid;gap:7px}
+#tour[hidden]{display:none!important}
+.tour-meta{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:11px;color:var(--muted)}
+#tour h3{font-family:var(--display);font-size:17px;margin:0;font-weight:600}
+#tour p{margin:0;font-size:13.5px}
+body.present .coach{display:none!important}
+@media (max-width:860px){
+  html,body{height:auto}
+  .app{height:auto;grid-template-columns:1fr;grid-template-rows:auto auto}
+  .stage{order:-1;height:58vh;min-height:360px}
+  .panel{max-height:none}
+  .scroll{overflow:visible}
+  .hint{display:none}
+  #inspector{max-height:calc(100% - 50px)}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="panel" aria-label="Controls">
+    <header class="brand">
+      <div class="brand-top">
+        <div class="eyebrow" id="eyebrow">Interview demo · Yuvraj Singh</div>
+        <span class="row" style="gap:6px"><button class="btn sm" id="presentBtn">Present</button><a class="btn sm" href="https://github.com/ysingh2103" target="_blank" rel="noopener">GitHub</a></span>
+      </div>
+      <h1 id="h1">Knix Network Lab</h1>
+      <p id="lede">How I picture Knix HQ and its 23 stores working together, built from the job posting and our conversations. Every store runs the same template, so three stand in for all 23. The details are my assumptions.</p>
+      <p class="credit">Built by Yuvraj Singh · <a href="https://linkedin.com/in/y-singh-gill" target="_blank" rel="noopener">LinkedIn</a></p>
+    </header>
+    <nav class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="role" id="tab-btn-role">Role</button>
+      <button role="tab" aria-selected="false" data-tab="explore" id="tab-btn-explore">Traffic</button>
+      <button role="tab" aria-selected="false" data-tab="incidents" id="tab-btn-incidents">Incidents</button>
+      <button role="tab" aria-selected="false" data-tab="docs" id="tab-btn-docs">Docs</button>
+    </nav>
+
+    <div class="scroll" id="tab-role" role="tabpanel">
+      <section>
+        <div class="row" style="justify-content:space-between;margin-bottom:8px">
+          <h2 style="margin:0">The IT role, mapped to the network</h2>
+          <button class="btn primary sm" id="tourBtn">Start guided tour</button>
+        </div>
+        <p style="margin:0 0 10px;color:var(--muted);font-size:13px">Each responsibility of a retail IT specialist role, where it lives in this model, and how I’d handle it. Press “Show” to light up the devices involved.</p>
+        <div class="role-list" id="roleList"></div>
+      </section>
+    </div>
+
+    <div class="scroll" id="tab-explore" role="tabpanel" hidden>
+      <section>
+        <h2>Watch the traffic</h2>
+        <div class="seg" id="storeSeg" role="group" aria-label="Store">
+          <button aria-pressed="true" data-store="s1">Store 01</button>
+          <button aria-pressed="false" data-store="s2">Store 12</button>
+          <button aria-pressed="false" data-store="s3">Store 23</button>
+        </div>
+        <div class="flows" id="flowList"></div>
+        <ol class="hops" id="hops" hidden></ol>
+      </section>
+      <section>
+        <h2>Layers</h2>
+        <div class="toggles">
+          <label><input type="checkbox" id="tgLabels"> Label every device</label>
+          <label><input type="checkbox" id="tgWireless" checked> Wi-Fi, Bluetooth and cellular links</label>
+          <label><input type="checkbox" id="tgVpn" checked> Site-to-site VPN tunnels</label>
+          <label><input type="checkbox" id="tgAmbient" checked> Background traffic</label>
+        </div>
+      </section>
+      <section>
+        <h2>Legend</h2>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--wan)"></i>WAN / ISP</span>
+          <span><i class="sw" style="background:var(--trunk)"></i>Trunk (tagged)</span>
+          <span><i class="sw" style="background:var(--pos)"></i>VLAN 10 POS</span>
+          <span><i class="sw" style="background:var(--staff)"></i>VLAN 20 Staff</span>
+          <span><i class="sw" style="background:var(--srv)"></i>VLAN 30 Servers</span>
+          <span><i class="sw" style="background:var(--av)"></i>VLAN 40 AV</span>
+          <span><i class="sw" style="background:var(--cam)"></i>VLAN 50 Cameras</span>
+          <span><i class="sw" style="background:var(--guest)"></i>VLAN 60 Guest</span>
+          <span style="color:var(--vpn)"><i class="sw dash"></i><em style="color:var(--muted);font-style:normal">IPsec VPN</em></span>
+          <span style="color:var(--bt)"><i class="sw dash"></i><em style="color:var(--muted);font-style:normal">Wi-Fi / Bluetooth</em></span>
+        </div>
+      </section>
+    </div>
+
+    <div class="scroll" id="tab-incidents" role="tabpanel" hidden>
+      <div id="incHome">
+        <section>
+          <h2>Incident drills</h2>
+          <p style="margin:0 0 10px;color:var(--muted);font-size:13px">Pick a ticket. The fault appears in the model. Run checks, make the call, then apply the fix and watch traffic recover.</p>
+          <div class="inc-list" id="incList"></div>
+        </section>
+      </div>
+      <div id="incActive" hidden></div>
+    </div>
+
+    <div class="scroll" id="tab-docs" role="tabpanel" hidden>
+      <section>
+        <h2>First 90 days in a retail IT role</h2>
+        <ol class="notes">
+          <li><b>Days 1–30 · learn.</b> Shadow store and HQ support, read the runbooks, learn the MDM, RMM and network layout, meet each department.</li>
+          <li><b>Days 31–60 · own.</b> Take a full share of tickets, document gaps as I find them, write a one-page quick-fix guide for stores.</li>
+          <li><b>Days 61–90 · improve.</b> Use ticket data to pick one or two wins: zero-touch rollout for new store devices, self-service password reset, alerting when a store fails over to LTE.</li>
+        </ol>
+      </section>
+      <section>
+        <h2>Hardware inventory</h2>
+        <div class="seg" id="invSeg" role="group" aria-label="Inventory site">
+          <button aria-pressed="true" data-inv="all">All</button>
+          <button aria-pressed="false" data-inv="hq">HQ</button>
+          <button aria-pressed="false" data-inv="s1">01</button>
+          <button aria-pressed="false" data-inv="s2">12</button>
+          <button aria-pressed="false" data-inv="s3">23</button>
+          <button aria-pressed="false" data-inv="cloud">Cloud</button>
+        </div>
+        <div class="tbl-wrap" style="max-height:300px;overflow:auto"><table><thead><tr><th>Device</th><th>Site</th><th>IP</th><th>Hardware</th></tr></thead><tbody id="invBody"></tbody></table></div>
+        <p class="score" id="invNote" style="margin-top:6px"></p>
+      </section>
+      <section>
+        <h2>Disaster recovery targets</h2>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>System</th><th>RTO</th><th>RPO</th><th>How</th></tr></thead>
+            <tbody>
+              <tr><td>Store payments</td><td>Minutes</td><td>0 (SaaS)</td><td>LTE failover, backup payment procedure, spare iPad + reader</td></tr>
+              <tr><td>Store internet</td><td>&lt; 1 min</td><td>—</td><td>SD-WAN fails over to LTE</td></tr>
+              <tr><td>HQ firewall</td><td>&lt; 1 min</td><td>—</td><td>HA pair; config backed up after every change</td></tr>
+              <tr><td>Microsoft 365</td><td>Vendor</td><td>24 h</td><td>Microsoft runs the service; third-party backup for mail and files</td></tr>
+              <tr><td>HQ file share</td><td>4 h</td><td>24 h</td><td>Nightly off-site backup; quarterly restore test</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="score" style="margin-top:6px">RTO: how fast it must be back. RPO: how much data loss is acceptable. Targets here are my assumptions to discuss.</p>
+      </section>
+      <section>
+        <h2>Runbook · network or routing upgrade</h2>
+        <ol class="notes">
+          <li>Back up current configs; note firmware versions</li>
+          <li>Write the steps and a rollback plan; get change approval</li>
+          <li>Schedule after hours; tell affected users and stores</li>
+          <li>Make the change; test internet, Wi-Fi, payments and every VPN tunnel</li>
+          <li>Monitor for 24 h; update diagrams and the IP plan</li>
+        </ol>
+      </section>
+      <section>
+        <h2>Runbook · new store install</h2>
+        <ol class="notes">
+          <li>Pre-stage firewall, switch and AP at HQ from the store template</li>
+          <li>Activate the LTE SIM and test failover before shipping</li>
+          <li>On site: patch, power on, check monitoring sees every device</li>
+          <li>Test a real card payment, guest Wi-Fi isolation and the camera</li>
+          <li>Add serials and IPs to inventory; label cables</li>
+        </ol>
+      </section>
+      <section>
+        <h2>Checklist · evaluating new software</h2>
+        <ul class="notes">
+          <li>Supports SSO with Entra ID and enforces MFA</li>
+          <li>Where data is stored; SOC 2 or ISO 27001 report</li>
+          <li>Admin roles and least-privilege access</li>
+          <li>Access can be removed in offboarding</li>
+          <li>Doesn’t duplicate a tool we already pay for</li>
+        </ul>
+      </section>
+      <section>
+        <h2>VLANs and subnets</h2>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>VLAN</th><th>HQ</th><th>Store NN</th></tr></thead>
+            <tbody>
+              <tr><td><span class="vtag"><i style="background:var(--pos)"></i>10 POS</span></td><td class="mono">—</td><td class="mono">10.NN.10.0/24</td></tr>
+              <tr><td><span class="vtag"><i style="background:var(--staff)"></i>20 Staff</span></td><td class="mono">10.0.20.0/24</td><td class="mono">10.NN.20.0/24</td></tr>
+              <tr><td><span class="vtag"><i style="background:var(--srv)"></i>30 Servers</span></td><td class="mono">10.0.30.0/24</td><td class="mono">—</td></tr>
+              <tr><td><span class="vtag"><i style="background:var(--av)"></i>40 AV</span></td><td class="mono">10.0.40.0/24</td><td class="mono">—</td></tr>
+              <tr><td><span class="vtag"><i style="background:var(--cam)"></i>50 Cameras</span></td><td class="mono">—</td><td class="mono">10.NN.50.0/24</td></tr>
+              <tr><td><span class="vtag"><i style="background:var(--guest)"></i>60 Guest</span></td><td class="mono">10.0.60.0/24</td><td class="mono">10.NN.60.0/24</td></tr>
+              <tr><td><span class="vtag"><i style="background:#8892a6"></i>99 Mgmt</span></td><td class="mono">10.0.99.0/24</td><td class="mono">10.NN.99.0/24</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section>
+        <h2>Rules of the template</h2>
+        <ul class="notes">
+          <li><b>NN is the store number.</b> Store 01 is 10.1.x.x, Store 23 is 10.23.x.x. You can tell where a device is from its IP.</li>
+          <li><b>Gateway is always .1</b> on every VLAN, and it lives on the firewall.</li>
+          <li><b>POS is isolated.</b> VLAN 10 can reach only Shopify and the payment processor (PCI DSS scope stays small).</li>
+          <li><b>Guest reaches the internet only.</b> Client isolation on, no access to POS, Staff or the VPN.</li>
+          <li><b>Reservations</b> for registers, printers and cameras so their IPs never change.</li>
+          <li><b>Two internet paths per store:</b> cable (WAN1) and LTE (WAN2). SD-WAN on the firewall fails over automatically.</li>
+          <li><b>Every store has an IPsec tunnel to HQ</b> for the file share and back-office apps. Payments never use the tunnel.</li>
+        </ul>
+      </section>
+      <section>
+        <h2>Common ports</h2>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Port</th><th>Service</th><th>Where you see it here</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">53</td><td>DNS</td><td>PC → infra server → public DNS</td></tr>
+              <tr><td class="mono">67/68</td><td>DHCP</td><td>Firewall hands out store addresses</td></tr>
+              <tr><td class="mono">443</td><td>HTTPS</td><td>POS → Shopify, Mac → Microsoft 365</td></tr>
+              <tr><td class="mono">445</td><td>SMB</td><td>Store PC → HQ NAS over VPN</td></tr>
+              <tr><td class="mono">500/4500</td><td>IPsec</td><td>Store ↔ HQ tunnels</td></tr>
+              <tr><td class="mono">631</td><td>IPP</td><td>Mac → HQ printer</td></tr>
+              <tr><td class="mono">3478–3481</td><td>Teams media</td><td>Boardroom calls (UDP)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </aside>
+
+  <main class="stage" id="stage">
+    <canvas id="c" aria-label="3D model of the HQ and store networks"></canvas>
+    <div id="labels"></div>
+    <div class="health" id="health"></div>
+    <div class="views" id="views">
+      <button data-view="overview">Overview</button>
+      <button data-view="hq">HQ</button>
+      <button data-view="s1">Store 01</button>
+      <button data-view="s2">Store 12</button>
+      <button data-view="s3">Store 23</button>
+      <button data-view="cloud">Cloud</button>
+      <button id="addStoreBtn" class="grow">+ New store</button>
+    </div>
+    <div class="hint">Drag to orbit · scroll to zoom · right-drag to pan · click any device</div>
+    <div id="inspector" hidden></div>
+    <div id="toast" role="status" hidden></div>
+    <button id="exitPresent" class="btn sm" hidden>Exit presentation</button>
+    <div id="tour" hidden>
+      <div class="tour-meta"><span id="tourStep"></span><button class="x" id="tourEnd" aria-label="End tour">✕</button></div>
+      <h3 id="tourTitle"></h3>
+      <p id="tourText"></p>
+      <div class="row"><button class="btn" id="tourPrev">Back</button><button class="btn primary" id="tourNext">Next</button></div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+"use strict";
+const LOGO_LIGHT="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAp8AAAE2CAYAAAAnE/mzAAAi0UlEQVR42u3de9xlc93/8dfVGDlMxiTDYBhRjomUukO4QwfpIEUO0U3d3A6TcixUiIzKoX6UdBKSO79Kql/pQI2kpHTjRkU1GYeEwT2Y0/X7Y63rnm3MXHtf17X2Wt/vZ72ej4fHjNnXtdf3+/l+99rvvfZa3zUwOHsmkiRJUh2eYwkkSZJk+JQkSZLhU5IkSTJ8SpIkyfApSZIkGT4lSZJk+JQkSZLhU5IkSTJ8SpIkyfApSZIkGT4lSZJk+JQkSZLhU5IkSTJ8SpIkyfApSZIkGT4lSZJk+JQkSZLhU5IkSTJ8SpIkyfApSZIkGT4lSZJk+JQkSZLhU5IkSTJ8SpIkyfApSZIkGT4lSZJk+JQkSZLhU5IkSTJ8SpIkyfApSZIkGT4lSZJk+JQkSZIMn5IkSTJ8SpIkyfApSZIkGT4lSZJk+JQkSZIMn5IkSTJ8SpIkyfCpJky0BJIkyfCpftoCuAEYBB61HJIkKaLlLEFjtgL+DTjcUkiSJMOn+uE44BOWQZIktZVfu/fXdsC1FF+lDxo8JUlS23nks1qTgDOB91oKSZIkw2c/HAkcBUyzFJIkSYbPqm0FnAG8zlJIkiQZPqv2XOAE4COWQpIkyfDZDzsBXwWmWgpJkqTqeLV7YRpwDYuvSv+pwVOSJMnwWaWPAwvKsHkPsLPTQZKSskr538qWQjJ85mgf4G4WH938EDDOKSBJSdgSuKJjHz0IzCn/e2KJfx8EbgHeYtmk/AwMzp4ZtW/rALsBn8t1bJyekoL7cHlgYNMKnmtb4JeWVEpftCOfBwOPlJ+KZ2UcPCUpshPL/fRpFQVPgOvL57zE8kppy/3I54rAn4C1Io6N01NSMJOAh2va1ukUR1YlJSa3I5/jKe6PPnTOz9ygwVOSovlFjcETivP6H7DskuFzNI4AHivD5jzgOIdNkrKxVbn/3q7j3xbWtO3J5bZ3dxikdOTwtftgW8fG6Skpc8+huFJ9xQTa8k3gHeXfVwP+6fBIze0YUjfeYZKkLC1MJHgC7AlcVf7d4CkZPoe1ANjAoZKkrKT4rdXuwOUOjWT47MXdwHkOlyRl4eGE27YXcKRDJBk+ezEdmO2QSVLSPkWxpFLKziWd0wEkw2fi1nPIJClZOwAfyKStcx0uyfDZiwXAxg6bJCXp2szae5hDJhk+e3En8BuHTpKSck6Gbf6swyYZPnu1jUMnSUmZnmm7j3foJMNnr/Z3+CQpCW/IuO1nOHyS4bNXlzh8kpSE72fefm/bLBk+e+bRT0nSWL3dEkiGz15dAjziMEpSY6YH6MMrHEbJ8DkSuzqMktSYY4P0Y02HUjJ89uomh1GSGrNWkH4c4lBKhs+R2NOhlCSNgdcQSDUZGJw9M0pfBqONjdNTkvte97tSNM8J1JfrHU5JqtUKlkBSm8Pndg6nJNXqKUsgqc3hU5JUr9UsgaS2h88rHVJJqs0ESyCp7eHzKIdUkmrzV0sgqe3hc5ZDKkkahbstgWT4lCSpLldbAsnwOVofclglqTb3BunH1x1KyfA5Wp90WCWpNpcE6cevHEqpHpHucNQpwh03vNOGJPe57nOlcDznU5LUdmdaAsnwOVa3ObSSVJtvZt7+4x1CyfA5Vt9yaCWpNu8p/3w0w7a7xJJk+KzENQ6tJNXmCeABYNUM276PwycZPqvwc4dWkmq1QYZtvg640aGTDJ+SpPz8D5Db8ilvcNgkw6ckKV/bZ9TWbwBPOmSS4VOSlLeNM2jjI8DeDpVk+JQk5e9O4LTE2/h8h0kyfPbD3xxeSWrEScBlibbNOxlJhs++udnhlaTG7At8teP/H2yoHQsNnpLhsy5/dHglqVEHsvgr+MkNtWEcMNfgKRk+6/CIwytJjTsJOKzB7T8OrOwwSIbPOsx3eCUpCedTHHl8oObt7gCsYvklw2ddFjm8kpSUNYFja9jOVWXY9W53kuGzVr92eCUpOWeVwfBtfXjuS8vnfotllgyfTXjM4ZWkZH27DIqrAl8bw/NcB6xdPtd+llVK38Dg7JlR+zaVvNf69MpMSW30QuDtwNbAlsAEYDWKe8ffRfGV+rcoFrOXZPhMyuo0t66c4VOSJGkpvOBIkiRJhs8KPOzwSpIkGT7rMujwSpIkGT4lSZJk+AxnosMrSZJk+KyLX7tLkiQZPmvjUkWSJEmGz9p45FOSJMnwWZv5Dq8kSZLhsy7LO7ySJEmGz7r4tbskSZLhU5IkSYZPSZIkyfApSZIkw6ckSZJk+JQkSZLhU1IkewC3Ae+yFAri+cB3caUUqe+WswSSejABmAEcusS/b5ppfzYEpgJbAOPL/yYAi4B/AL8F7gbuc+hDmwG8vxx/SYZPSQ3bFfgBw39DkuqdxAaAPYH9gY2BF1X0vPcCXwIuBP7uFMnOHsApwGaWQmqOX7tLGrIF8EOKrx0Hy79320cMJNT+ozvavgi4Ati9wuAJsDZwEjCrY1u/BrZz+iRpA+DrHWN1pcFTap5HPqV2+wJw8Bh+v+nz424Ctm64Da8AflH+/V5gR+BPTq3G7FXO6+dZCilNHvmU2uU1wC9ZfCTo4DE+36IG+nBQR/u3Tqy+awN/LNv2PadbLV4O/LxjTlxu8JTS5pFPjdbrKb7CehpYGRhHcdRnXeAJYA6wOrCQxV+D1vWBZ1HHdp4GJlFcOPIEMK1s0xxgjfJn/gR8HPhKwHGaRnGR0LEBPsBeAbwjo9q/sZz7lwL7ucuodE5/HNgnQF+uAXYGHqE4f3o+sEoZnq8HXkZxasvQPm1B+eci4h48GihfNwPAY8BKwCHAZQ226SvAm8px+SswF5hYvocMdozHojJXLehxfIZOWxrs6HfnY48DqwK/B7Yp//0XwPYUF0VuDfwBeGl2gzw4e2bUHdQqZcDI+QWYsrXKsBnBIcDnA839bYGvAevXsK2PUFzA0U8/o/gqO3eXAfuaHUflw8DxFCsSRNr/bgLc7vB2tT7wlwa3fwzFyggpOgP4UG4D6tfuGq3ZwOEBPmEPBAieq/HMC4Vm1hQ8+23oq9Qdg7xm9in7s627j652XmJOn1Zj8KzTf5PhUaua3dBw8AQ4C3gowdpMyTF4Gj41Vv8nwzZ/vyN05uwg4MbyjfkhimWRophe9mv7oK+bmcAd7j6eYTngzI6weU2wOT2cP/hePKxXJ9KO1yZWlwHg/lwH1QmvsTohk3b+pHyx7pZpnV9Mce7g0JvzRSw+ByiSu4FzAvVn4TL+faNyHFdp8b5jV4pz2gYpznU8tsW1GAzwgbgNHxJ+m0A75kaYK4ZPjdUnEm/fk+ULdecMa3tkR9i8kzQvsKjqavf3lP1cP9jrY1yXx+cAb2/JvmIz4FqeuY7sBNTJAPpMFyXWnkMa3v4TFBf4Zs/wqSqck/COfKWM6rgJxcU1Q2/O57ZkH3IDxV2D2uqbZRCL6Isd8/lWYAd3l125TNRiRyTWnpsa3PalkeaG4VNVuCCx9rw9oyMI/6/jzfl24lxc06tB4FW+hNgVOD9AP95RhsyhOf1vDu2IPUFxEeGQR1tci6cSbFMTN5C4imDLtRk+VYW7atzW3I6/L3lf8R+WofP/Jlyr/SlWChh6c35dS+fMljR/d6TUHEpxdCMnW5QfPofm8xV4+8oqPEyxviMdfyoNR9e8vb2At0QrouFTVZlV03Y6v0Yf3/H3bSgWvk/NVjzzQqGLKZbHaLM3Ab/zJbNU+2QQQI8B/lHO51to/jy4qOaU4V5p+U6N29q7/EAXjuFTVfnPhrZ7FcXRzt8kVIsDKc5jHARuJsadWKryReC7lqFrAD0wofasR3Gu29AHqBnACxymWvwX7V0Xdq4f0vlG1M4ZPlWVJm59tjlpfR0xpXxz/jKex7g05+A5gL36MsXyWk0bpFjge2uHpDG/pLhffdus1OIxPwT4XuQOem93VaXO9c9+QppLJ91HsW6hV6s+29AtMiPfk7pqd+LSOyq8q9znecQ5vla85n0TUG52Je01O1cBHnRH+Qw/ZvFV/O5zRuZE3whVWr3j709Yjkb1ax+/WlsK6BuBcjEXWIvitnupm9aicVnWUigrln+eTnq3pcvJqTS/EPvbHIZkDIUTF+dPc783Up13QJtIscqB4VNKxHkUd3W4L5P2Pgm8tSVjs8IwNTiOfG6/mrKmP3B9mzRuK6ginBxsGRpX1YolQ3dA2x54rE0FNHwqdTsA0zNs93co7lzT1iMAm5D+rVdz8SrgNQ234eWkueB3G30R+FFL+prqh/jxFT7XdsDMtk1iw6dStiHw84zb/44WjNGyLlq8veLtPAQ8QLGu5JMtfC1cl0AbXuouKRltuTlF9FN2dgeub+MENnyqKpMqfr7lgT8HqEv0BeWX1r+/jeH5/kKxzMjAEv+tDqxJcWeklZZ47IDy96Jrevmuu8jzW4ioJregj4cH7tsuwNVtnbyGT1Vlp4qe529loJgfpC73A1cGHvclr/qcAUwd4XPcXIbYAWB94PMj/P2Ly98bAN4TuNYpvFGdB9zr7i4J/6C4IE31WrmC5ziMYhWQ1jJ8qir7VfAcZ1HcTSWaPTv+vihY3x7o+Pu2FLde7NWXysC4dRnSq/CV8jn3DTiPUlmGZR13d8k4mfh3ApqUWHv2GOPvfxU4v+0T1/Cpquw2xt8/ATg2cH0OD/qaW7Pj70MnzT/e5XdOLQPiQX1s12XEXKNy/0Ta4dfv6ZgavH8nJ9ael43hd28grVvnNmZgcHbYi6xWAebkPDaZtXdwDL/7Cop7R0c3GLBPJwGnAbcBm3b52duBzRpo44XAeyPtt53P7n+XcC5wpOOR9Lx/vMwlwiOfqsbrx/C7E1oSPCHm+nyHlm983YLnvg0FT4D3lQFU1XqnJUjGdOJ//Z47g2fnpwmPfPpJrwL3A2sE72PTn5pzdRuwubWv1PvLwG9N3f+2ZTzOAY5KoB0bAXf4Xjd2HvlUFQyeIwsObXFLQsEz0pw7LqG2bIZS8hH3m301mg99uzstl7Iz9sinn7zH6ApGvph62z8FLmzBB79LqWYFhH4Etwh3XopwDpz1dTxyG5OR1vaNwA+Mms/mkU+N1UiC5/UGTwBODN6/yxINngBnOv0q91ZLYEirwc0Nb3+FEf78BQZPw6f644oRBs/tLBkAZwTu2zmkv8bmMQHqvGtCbfmOL+nkXBywT1s1vP1rRvCzjwP/4TQ0fKo/ej3qeabB81nuCdqvozJo4ycD1PllibXnEV/SSTkgaL+ObnDbI3kP88p2w6f6ZF6PP7cZcLzlepYdAvbJUyrqs1ti7Xm+Q5KczQP26ayGtjuS03XcDxo+1SefAcb38HOvolhYXM82K1h/3pBZe3O/KngNX0Lq4jbgFwH71cQpJwf2+HPbOu16TOhe7Z7u2CTarrcC3+rh51bNvP51+CuwboB+PJhpGMr9quDU9hHHE+d85khHr1yNYGx2A67u4efOpV1L6Y2JRz41EuuVwXNhl58bZ/DsyaeC9GOyQyliLGEV0akB+/SuGrfVS/C80+A5wk8PHvn0k13Fn6A936X6mqbuUWCStXcfQZyjbNH2Yx79HJ1JwMO+71XPI58yeGqs/pZpu+906Cr3K0uQpF0D9mmXGrZxfw8/s7nTy/Cp6r3e4NlXfwjQh9UzbffPnX6V+6QlSNI1wA+D9elHfX7+/YHlu/zMBRQXdsnwqQptRm93aDB4jl6EN4Qpmbb7Xqdf5b5nCZL1+oB96ufV5d0W6n8QF5I3fKpy+wC3Gjz77tgAfXjUYVTpKUuQtGi3l+3XRSu9HMF3uTPDpyp2LnCpwVOSQol4w49+3N71g773GT5Vr/8CjjR4agSWtwTqcJklSFq0Wx2/ueLn63YP972dQoZPVethul+596DBs3IPZt7++Q6hOnzVEiTteuCeYH26saLn2RrYeZjHvwV8wylk+FR1Bum+VuNsPM+lH3Jfnma8Q6gOP7MEyXthsP5sA+xQwfPc1OXxPZw6hk9VGzx78WZL1RfXZd7+eQ6hOngkPA+nB+vPtWP8/W7njvoh2/CpBoJnL58KNTq5rzfpaRhSfj4csE9HjfL3tmD4gyt7AQucMoZP1R88x/ri1rL92RJIasC7g/Xn08A6o/i9W4Z57CHgCqeK4VNjtzOjv9fvpy1f5R6xBArmOkuQha8BC4P1adYIf77bEc3VnSaGT43dQXRfSqKb71hGScP4hyXIxtSAfTqsx587Bxg3zOMbOz0Mnxq7GcBFFTzPm4HJllPSMtxtCbJxH3BVsD59tsefmz7MYx8F7nR6GD41NpcAx1T4fLMsqaRlmG0JsvKWgH36bpfHB7t8ePqY08LwqbH5OrBvxc+5PLCfpZW0FH+wBNk5OFh/3gRMWMZj3Y6MbuB0MHxqbO6gf7cD+5rlrcwcS6BAbrME2fki8ECwPj2+lH/bkOHPCd3VqWD41NjMBjbq8zbOt8yVeMwSKJAHLUGWXhuwT0cs8f9/HOZnf8zYL8iV4bO1VgDuBabUsK1DgRUt+ZgNWgJJDbsN+FywPp3X4352HrCLU8DwqdGZBjwJrFXjNh+y7GP2XEugQCZagmwdGrBPf6f7Oa0eRDF8agzuaWCbK1HtlfRt5NfuisQj+Xk7Mlh/1ga+MMzjnwYWOeyGT43cTg3v8Gc4BGPi0lWKxDfyvH2G9lwEeS3wQYfc8KmR2xX4acf/P95QOy51KEbNRbkVyThLkL2XtqSfOznUhk+N3HHAD5f4t+c11JZ9WPa6ahrevZZAgSywBNn7K/EPKGzjMBs+NXKfAj6RWJt+57CMytOWQIF45DOGyDcS+QHwG4fY8KmRmQF8IMF2bQjs7PCMmEeKFMmAJQjjpIB9mg+80aE1fGpkfk/aV5e7SO/ILbQECsSr3eM4LWCfxjushk+NfKeew4ngP3SoRsR1PiWlatWAfTrYYTV8qrsBFh9N+GcG7fX+uCPjOXKSUjUH+G2wPn3BYTV8qrvOdfNWy6TNNzpsPfNrSkkp2z5gn051WA2fihdMtsFblo3mw4UkpeZJ4NhgfTrRYTV86tneSf5HxOY6jJIUwlnAvGB9usNhNXxqsUOAbwTpy9EOZ1ee8ykpB+sF689GwKsdVsNn2z1Z/nlB+eeDQT4tO+eG51JLknJwP3B7sD5d77AaPttu6BzJoQXkJwfp1+Xln57b6GtRUt42C9inzzusvuEJzg7Wn72A1R1WSQphz2D9eR9eIGv4FAC7B+vPfQ6pJIVwJfG+yfLmKIZPAVcHe3GPKz9dSpLyNzVYf7YH9nBYDZ+CFwXrj+fVSFIMs4GZwfp0pcNq+BTcXf4XyWccVkkKIeKdj2Y4rIZPFeuQRXI4MMVhlaQQDgvWn2OA8Q6r4bPtFgAnBevTbx1WSQrh/IB9+pHDavgUnBasP1OArRxWSQph7WD92dEhNXyq8Ipg/bnZIZWkEGYH3KcPOqyGT8FNwFPB+nSBwypJIbwsYJ98jzJ8Clg3WH8OcUglKXsPBO2X71GGTwH/AG4N1qf7HVZJytaJwOTA/bvFITZ8Cl4SrD9rABu2fEwXOa0lZWgT4NTgfdyi/E+Gz9Y7L1h//uhrUZKyc3tL+unRT9/wBEwP2KeDWzyeHvmUlJt7hnlsNjAvWH+PdsgNn4J/D9afL7R4LFd0OkvKyKuBacM8vjbw3WB9PsthN3wKLgTmBOvTXS0dy5OdzpIycv0wj72u/HPPgP1+wKE3fCreumovAl7lsEpSsoZbfP1qnnlryhcE6/tkiqO+Mny22t3Eu0/6DQ6rJCXppi6P777E//8TuC9YDX7sNDB8Cl4esE/THVb3I5KSchiwNcu+QHJZ+4K1gtVhReAEp4NvGoIzgvXnHIc0G16pL8W3HPDZYbLD+xn+6/iPBKvH6U4Jw6fgQwH7dLnDKklJmD/MY3cA53b5/VOAJ4PV5EanheFTsH+w/uzF8Et5yP2IpP6b2eXxTXp8no2C1WUb4JVOD9802u4S4i3q+12HNXl+7S7F9Rpg22EenziC55pFvDsF/copYvhUsQxEJJsDb2jBuOW8yPzTvuyksK4b5rHpwGMjfL4tA9boq04Tw2fbzaH7uTe5+X4Lxm2ljNu+vC87KaTBLo+fN8rnjXaNwrudKoZPFVcdRjMj+JhNy7jtK/uSk8K5tMvjA2N47jOId7rOhU4Zw6fgvcH6cwwwKfB4bZBx28f7cpNC2QXYZ5jHN2z5Pm9Z77kTnTqGz7a7KGCf/hZ4vNZ1ykpKwMo88/aYSzoV+HMF2/kLcGuw2s1y+hg+VXx6jWQCcS8+Ws7pKikB3a7ePrnCbb0kWO2eBxzvFDJ8tt2PibesRdSLj7xoR1LTvkKxwsiyDPRhm9HufHSG06jd4XN+5u1fraLneWPAsX17wD553mT9XCKqf+ZZguy8GDhgmMc/2KftnhKwlmc6ndobPnc1PAMwm8X3443imwHn64Pujmp3uCXom70zb/8qLRuvScCdwzz+F+DTfdx+tHPej3UX0N7wuXHm7a/yHMAjAo7vj4P15/nujmrnnZn6J/fTSMa1bLyu6fL4+n3e/iyK+8NHMtvdQDvDZ+53+hms+PlOCDa+ryXWUh0vcneU9Qe8JqyZcNtWz7y2bToN5hpg62Ee/1hN7dgsWF2nALu5m21f+Mzdwoqf7xMBa/SnQH3ZwClfu9yPbi1MuG3rZV7btVryGtgW2LnLz3y0prYsAq4NVt+r3c22L3w+nnn7+3HkYMeA43xykH6sh+qW+3l9jyXcthdnXtupLZj/44GZXX5mo5rbtFPAOh/krrZd4TP3q9237MNzXke882o+FqQfuZ8mkuPdp1bIvOYpf+3+wsxru0YL3v/v6/L47cBdDbQr2tJLF9GeI+mGT2CdzNvfr533KwOO9aUB+pD7V8BeMFW/1yTcttyPHE4KPnc+Sffl/Jo6BzPi0ktXuLtqT/jcLvP2r9yn532M7l+15GYfYEVfzo3yDk31+xdL4HvjKBxB9zU772m4jRcEq/m2xLugyhdYzeGtLgf08bm3Dzjec305N2pvS1A714btn6hXKU8Bzuvh55o+beI/Atb+Vl9W7Qifa9r+YR0acMxP8SXdGI8812+aJeibtYP2q5e1J29OpK0fClj/s31pFQYGZ8+M2rfBCONjjZKrmWOxdJcD77LmtbqF/lyYaG3z3pcsyzx6W790fYo7GjmP+mNVYE7bw6frfLbbvwbs03cybHOENT5zWyR/nQA13zTRdnnxWXqu7TF4zksoeAJcGXAsfuV0NHy23c+Au4P16c3kd6VthAtHtsqsvTsGqPl4a6seHAPs0OPPvjuxtu8ZcDw2Bg40fKrtNg/Ypz9n1t6Xuy+p3Za+9PtmG0uQjN2AGSP4+W8k2IdZAcfly4ZPpayOuz08CXw7WN3Gj+CTfgpe6lSv3YssQd9sF6QfEd4fl3Z7x2XdlvX6RPvwzqCvk4sNn/FMCdKPuo6IvS3gHLg2o7aujuo2zRL0TZS7A62befuXdbHOsm5ocUai/Yh6juT+hs949g3Sj518IbQigEZZfDine6VvYc37ZsMgtT0qYPAczvcS7s/7g2aVQVoqaviM8sZS52LwlwScBzuQ7kUZEb3cEtTuNZbAEL2E/w44FucHnmcXtPHFFTV8vi5IPybUvL2IFwr8yffQ2uxrCWp3gCXomx0zbPPPKK6mHqmPJt6v+YHn2SHAJMNnDJPdb47Kb+jtDhg5WZe0Lz56ZaBa53KLzZUD1Ty1pWh2CVTblTJr7yljCMwfz6B/ZwZ+733Y8KnU1B2cIt5W7loDm2/WHd7sbqVv9rMEjZgOnDSG31+QQR+PDz6GnzB8KiWHNLDN7wes4zmJtmsvp3jt3mIJ+uYdwfozMYM2bpvw/k29Ow54RVs6G/He7rsDV0Ubpwa26X3frfNorEr69y1+Glg+UM3Hk86Rq2jz+QPA2Ym3cWk1fwpYocffn0s+p6JcA+wcPZe1IXxGPPLpgt3V+M+AfXrEYe27jTNo4/LBau4qA/2T+q1vlxY8548geEJet1huw52B7jB85unUgH3apIFtRryrxKoURzJSEfHCuPebV2r37UTacVjA2qZ8lG1ZR5lHurzclRmNx2UteD1vRHHx2HBWNHyqDk2diLxdoBrOK//8VEJtirhMTuoX80wLWPNU7ij0LwFrm+oSOFWe3vCUb7FJfoh/yTCPP2n4TEvUBcWbekO/Hrg1SA07v2p9IJE2nRxwrqZ+xftHfV/rm3dZguyCJ8BjljQ5zyPubUVDhs+DnLOV2yJgnyaTxukZE5xetYu6KPtzfT/pm4MDB0/I7yjaoy3ZV61E4Ds7RdtZHBd4In69wZ3dTwLW80RGdlK+ejfdEjQyn5u0TuDafixw8ITiKFtObmvR6/pQmllu0fA5QtMCT8ImFyOPurTFEw1u+52B5+oJibYr8p3Pmv7gfXTg2q4VOHhCMxe0Gj57d0Eic9Dw2WKrNLjtYzKv3aKl/Ns44PMNtefswPN0jUTbFfmbkabPd/dod57BE/K7xe/sFs6Bew2f6XpfCyZgk1+tfTLoXH8f8K8NtGctVLe3Be/fcg5x3+zQwDY3o55F+6dmNhZz/RBi+EzJ51sw+Zo++jg1aF1/Qr23NWvDuaaXJ9im9YPXvKnVE6a0YD7Xvb7kVtS30sgLMhuL1tyCcikeNXyqKRs0uO2/A38JWtdfd/y9319hnt2CeZra/dPXaUHNT2poux9sQW3r/KbidODmmvuX01Hz17f4/X8izzwCmu1i81HC534tmnxN37c+8tGjoRf1/D5v55AWzNPUju5+xs+ths8M3EQzF+xdlFGNnuc0+d/Vb7JdbD5K+DylRZNu0wTa8OsWBFCNXUpXl7+1JTV/idOuby7s8/P/Gdi6ob4d4PBmZW/g4pw7ECV8rt+yifelhrf/yuD17WcAbdONEL7oe0Tt6j7X9g0tqu17+7zPeaHTt6ujLMH/2h94KNfGDwzOnpn7ALya4jaQbTOQwMS/OHiNVwXmZBRsnadLdwwww5r3xR3ARtZ21MYD8xLp20+B17b4wEBO/gmsNsy8HE//Tx8bkwhHPi9v6eTbo+Htf60FNX6UjE/oTkQKV0Kf1rKa13k0cqOW1fbACp9rk4SCJxRLzqV8IwZvR7zYakt5r+rMdfNT70CE8Dm1pZPvygTasG0L6jwXeFVFz7VBC+fpEQm0YfmW1fxi1C9fruh5/h24PcH+/T7h2j/u9FumieUHmRVY+g1VDJ+q1JoNb/+XLanzDcB6FTzPT1s4R5u+1eb3WljzutZt/LC74FG5EPhcom2bAmyXYLvWc9p0NZ6Mrn6PcM7nJOApilslDp0PMkCMc0MWUXztuwLFLcUmUhyJG6S4qvV3ibRzZYp14uaUbaT8+wRgQfnYYKL1HXrRzivnzdA8WlT++xMUixrfWMH21gFWAu6iuFXqYx01oqzTwvJD4aJMPhwuWuKD7EKKI43zyv5MBu5uuI0bAPeUbR2q+5AJ5XgvLMd+qE+DHf+fsgXA0537dOo7D358Wb95Zf2GXj8Lyr9HOLjxP2Ugu6/i2k4rn3O5Jd6zBsr6LW0uVv2+Nq58LQwAz6c4j3BT0jwiC8WFrjeWNVu9rN8q5dyjY/8zjhh6eQ+YC6xNsQY3FN/S/crwKUmSJHXwa3dJkiQZPiVJkmT4lCRJkgyfkiRJMnxKkiRJhk9JkiQZPiVJkmT4lCRJkgyfkiRJMnxKkiRJhk9JkiQZPiVJkmT4lCRJkgyfkiRJMnxKkiRJhk9JkiQZPiVJkmT4lCRJkgyfkiRJMnxKkiRJhk9JkiQZPiVJkmT4lCRJkgyfkiRJMnxKkiRJhk9JkiQZPiVJkmT4lCRJkgyfkiRJMnxKkiRJhk9JkiQZPiVJkiTDpyRJkgyfkiRJMnxKkiRJhk9JkiQZPiVJkiTDpyRJkgyfkiRJCu//A6aD+PI/m9YbAAAAAElFTkSuQmCC";const LOGO_DARK="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAp8AAAE2CAYAAAAnE/mzAAAbhElEQVR42u3dd/xkdXkv8M9eQFlAEF1QliLKKiZYwEJEQMCCBRULilKMRvTCNQp6aSLYQAFLxHKxkVdiRKwkiiVBSAQVRUWiCXrBQlQEQb0oFjps/pjZy29xy+zulO9zzvv9es2L3WV3fs95njNnPnPmlHkLFi4KAABMw//QAgAAhE8AAIRPAAAQPgEAED4BAED4BABA+AQAQPgEAADhEwAA4RMAAIRPAACETwAAhE8AABA+AQAQPgEAQPgEAED4BABA+AQAAOETAADhEwAAhE8AAIRPAACETwAAED4BABA+AQBA+AQAQPgEAED4BAAA4RMAAOETAACETwAAhE8AABA+AQAQPgEAED4BAED4BABA+AQAAOETAADhEwAA4RMAAIRPAACETwAAED4BABA+AQAQPpmqHZK8WxsAAOGTSTkqyeLh4+Ikf60lAIDwybjskuS8OYHzJC0BAPpmbS2YmI2TnJzkJVoBACB8TsIrkrwyydZaAQAgfI7bDklOTPJErQAAED7H7a5JXp3kdVoBACB8TsIeST6UZEutAABYM852/1NbJzknd5yV/m+CJwCA8DlOb0py6zBs/leSx2sJAIDwOS77Jbk8d+zdPCbJWlYHgCZsn+QTc7bRSx7fTbK39kBt8xYsXNSH5dwiyV5J3tf6PKySQE+9Zrhj4M9X4d/snORrWge1dHnP50FJfjP8tHxFgeAJ0EfHDrfTJ6xi8EySC4b/9nRthDq6tOdzfpIfJVlYeR5WSaAnNk7yq+Gvx3XY05sz2IMKNKzyns91Mrg/+pJjga4vHjwB+uIrc4LnOB2T5BrtBeFzUhYnOcoIAcrYIYMri+w0wZ+x6fD94WnaDcLnuN2a5IFGCFDm/eaCDL5iv/NjEs5K8kltB+Fz3C5L8i1jBGjebRkcmz9N+wxDKCB8jtWOxgjQtMUz/NlPS/IxIwDhc9wONEqAJl3bQA37JnmFUUAbunSppcVdmIdVEuiQtyd5VUP1rJfkBmOB2erSRebt/QRox26NBc9kcEk+QPgcm9MzuKMRALN3XqN1vcxoQPgcpz2NFGDmTmm4tvcYDwif43SRkQLM3KGN13e0EYHwOU77GCvAzDy5QI0nGhMIn+N0prECzMwXitTp9swgfI7VBUYLwAo8WwtA+BynXYwWYOoOLVTrI40LhE8AajuyWL33NjIQPsfJsZ8A07WwWL0HGxkIn+P0SuMFYAXcGQ+Ez7G6wngBAIRPAGjB57QAhM9xO8aIAabmymL1ftTIQPgct7cZMcDUnF6s3guNDKZv3oKFi7q+jIsrzcMqCdjm2uZClznmE4A+OlkLQPiclO8ZM8DUfKpInUcbFQifk/JPxgwwNS9K8tvho1WXGxMIn5N0jjEDTM0fktzUeI37GRMIn5P0ZWMGmKptGq7t/CTfMCIQPgHojj8muaTR2p5sPCB8AtA9uzZY08eT3GA0IHwC0E0PbKiW3yR5npGA8AlAd12W5IRGarmHcYDwOU0/M2qAmTguyRkzrsGdjKAha/dkOS9OspVxA8zE/kluydIn+2w6wZ93Ww/f56CMvuz5/KFRA8zUC5N8YIo/7ybBE4TPWfqNUQPM3HFJ3jCFn3N9kvW1G4TPWbrFqAGacGqSeyW5ZkLPv1uSDbUZhM9Zu92oAZpy7yRHjvH5zsrgxCJ3tQPhswnfNGqA5rx1GBifuQbP8ZHhc+ytnSB8tuR3Rg3QrE8PA+Tdk3x4hL9/fpLNh//mAO2DWuYtWLioD8u5ZWpc69O16ADucL8kz06yVpJ/yuCi9YDwWcImSX4pfAIAzJYTjgAAED7H7FqjBgAQPqdlsVEDAAifAAAInwAAIHwCACB8AgCA8AkAgPAJAIDwCQAAwucam2/UAADCJwAAwicAAAifAAAInwAAIHwusY5RAwAInwAACJ8AACB8AgAgfAIAgPAJAIDwCQCA8AkAABO0thYAq2iDJH/o0PIsSrJlkpuTXJ7kF0YMMDn2fAKj2DPJbUkWJzmsWO3zkjwnyVlJfjBchrmPHyb5tyRfTXLVMv7/z5O8MckWVoNOeVaSS+bMGRA+gRl6SJKz57wxn11se3H4nNpvT/KJJE9Lcv/VeK7NkxyX5Io5z/nNJLtYTUrZJslH58zwzCTbaQtMn6/dgSU+mOSgwvVflOThU/pZj0zyleGvr0yye5IfWYWas+9wvb6bVkA77PmE/npMkq/ljj1BFYPni+fU//AZ1bB5Bl/dL07yeavVTD0iyZfnrBMfEzyhPfZ8Mm7vyOBYqiRZa86fbzThDz+3D//rjWb5tk5ySJIjO7Asn8jgOM7WPCXJrcPQc4BVbirr9JuS7NfR5dsgyb8Mf/3QFfy9Lu1IumeSG4vU+p05728LxjSfJSdz/mT4obaT25F5CxYu6sMGasMk11WYRwd6/YAkl83g5z47yT96L/4TOyf5cJL7jvE5j0tywoyW50sZfMXdstvm/PrjSfa3Go7Va5IcPQxmfdj+3iPJj+f8/u4dn2+l98EfZnC1jEk4K8neXR2yr90Ztx9M4DmvX8Hj7OHGSvC8Y6/B3BOFvjrm4DkrS75K3b1Y3ftmsCd0Z6vmanv8ndbpEyYQPFt2bQZ7eGnP4RPcbuzd5cYJn0zCFVP6ObsneZJ258VJvjF8Y/51BpdF6opDh8u1a/HlOD/JpVbVkayd5OQ5YfOcjq3Tq+O6DI7Rpi2fmcBzPi+Dw4o6TfhkEj454ec/N8n6Sb7V0/4+IMlH5rw5n5Zkxw4u5+VJTunQ8iwazmtDm4g/sWeS3w/7c0u6cVzyuP1nkr06vozX93zGT83gUJ3OEz6ZhDMm+Nw7puNfRyzHK+aEzcvS3RMskuRFw+WserjAWit4JIO9WM/u+TZiuyTnZenryG4QVuZrGZzMRvccnB5dLcPZ7kzCtyfwnF/P4NivvvizJKemzWMcJ/mh9etJHtWD+X4qyReTPLFH6/TfJvkrm8c19vzhtnCBVnTGvL4tsD2fVPCMngTPf8kde4K+n3on16ypxT0JnkvsOfyA0VXPydK3rxQ8x2eTDC7Js+TB7PxyDf/9PfvYNOGTll2fZGEGJxx00YFZ+l7iVfaC3TTm59s+/b239iEZHL/bBQ9J8t456/Mn4vaVk3QfLWjCql6T9LY5j40yuJqB8AmNeFcGJxX9okPLtEOWPlHoH5Js1vM5PzXJv/e8B/sVDqBHJPnVcH3+bgbHrTEd1yY5TBvK2j3J7/q68I75pEW7ZXBdxy75ZJJ9jHYpjgFcOoCek+Tvi9R7Q5J1ja2J19Bz41JUFd/jLuhzA4RPWrMoS9/Noyuek/5+tbwspyR54Ur+zq8z+Grq6hX8nQckmd+RnvxdBmcz/6BArQ/NbO5kxp96Yoe2Lev1YF7P6HvwFD5pzV0yuMZfV22Wbh1GsLq+lKUvmP2TJCclef8YnvsFSd6QuneEuSw1znz9QQY3AHin1bkJm2bNT3xh8p6QwXWqe88xn7TgZ8M33Fs6vpxXJzmz57M+N4Njnb6TZPPh3O87puCZDI6jve/weV9UtEfHFqnzXUmutPlqwq+SHK8NTXuZ4Cl80o63pl9nbe6T5PY5j4p+u5r/7s1JfjoMhg/Pir9OH4e/H/6s/Yv19/jUueD6FjZhzXht3CGoVR9Kty+rJnxSyqvTz9vovaKHy3xUkmMyuA/9tJ2RehdxrnR5sUNtypqxpRZM3cquWPL1rPz4duETpuSRGRzn10f/p4fLfHIDNcxL8sEi/XpUlj4utmXvsjlrxrUdmMczitW7zgr+3++TPNpqKXzShg2SXNTzHrzUajCzvn+gSK3nF+rrc61azTg0tb9+f1yHZrGh1XE5ewIWLFzUh+XcMMl1FebRkX5vnOXftWGel93/d1vRD4AHZ3wnCM1KlUvT7JTkQj21/e3ZPOZ1oM/e61bAnk8mYQ8vxpG8Sgu8ua3E5wr11K002/I6LZi49Zfz50/TGuGT6TtA8BzJO1P3jPcuOLpAjfcs1M/vW6Wa8sbCtW9cpM5nLePPnlLsQ6PwSWfsNefXFwieK3RswZo36UjvTy5S54GFevoML+mmVN32vrZInQ+70+/fm+SfrXYjrJiO+bShmIDFc4LnLl5mI/eriuOSnNCR3h+ewbVmbRv6uz53bft7Zx/K4M5f5jHZdf33cYKR8Cl8zsyThp/8Tk6NrzVbcHkGd+Wp4qokn5rz++rXeVxs2zBW16bO16Z9CJ9VPxBUC5++4RM+hc8ZujrJY+P4r1WxZQa3GC25DfHGPBWHpdZ91IWdtmyX5JJiNZ+S5JUN17dtkksFz9XjmE/GbW/Bc5VdUbTuJ3ek/xXOCj7Ky4Q18L0kXylW82GN17fkw+DOVq/V+KRnz6dP3mO0UZE+t+inSbYqVO8vk9yrQ/331ft4HZ3kxGrvhz3Yziw2k7H28p0FQnKT7PlknATP1fd2LaBDTtKCJh1frN6LG61r3SSXCZ5r8KnCnk+f8mjqk3QV9nxO3xOTfFFPbX/NZea+kmRXb1mrz55PYHVc3bHluaxAjQ8r1tMLvUyatGexeg9vsKaDrUbCJ3TFf2jBzHy5QI17Fevp26xWTTonydmF6m3tOrwnZ3ACF8IndMLZWjAzVxaosdphDp+3WjXrScXqbWlvrStPCJ/QKUdqAStw/2L13mhkTTu5UK0+mAufAEBx1e5A93wjEz4BYGXO0IKm7WJdQvgEfqkFdMiHtKBpFyT5r0L1PsHIhE9g/KpcnmYTo2IEX9KC5t2vUK1fNC7hExi/84vUOd+oGMEtWlDCmwvV6l7qwicwZl/WAmDKXlOo1q8al/BJ9z1cC6bqx1oAzMALCtX6GeMSPumu/9SCqfuNFtAx52tBCR9OcluRWp9uXMIn3XRtkgdpA7CGfqUFZWxZqNZvGJfwSbcsTrKxNgBjcLkWlPGLJGcVqXXHJLsZmfBJd4InwLhcpQWl7F2o1vOMS/ikm8HzIm1hGeZpASP6Dy0o56BCtb7SuIRPuhU8vbhn4zotoEO+pwXl/G2Sa4rU+jdJtjAy4ZNaHp+Vf9X+N9o0Vb/TAjrELWNrelyhWq8wLuGTOl6c5JwR/67rqk2P426BWftekvcVqvdlRiZ80r63JDltFf7+05Nsqm0AvXFIoVrfY1zCJ207PckRq/HvfLUxHTdpAdCIVxSq9bPGJXzSpo8m2X81/+1dkhyghRMn5AOteHfqnAT51CQbGJnwSVsuTfK8NXyOD2vjxLkoN9CShxaq9ffGJXzSjquSbDum5zpVOyfqSi0AGvLTJB8pVO/LjUz4ZLbWHYaZzcb4nIckma+1E+OYT6A1lQ65epdxtW1tLei0rTO4u8jdJvDcv06yvhZPxK1aQIfYTnTHcUmOL1Lrz5O8/k5/dpoRtsGez26b5G3t1svqnTHPyt2mBUCDTihU6+ZJPjjn4XAx4ZMJ2yPTuUvOW7QaoFfurgUIn9zZnpnu3Yg+ouUAvXFdkm9rA8InSxyV5OwMjvGc+5ik/eK6agB9sqsWIHySJG9PctKMfva/az+wHGtpQefckORIbUD47Le3JHnVDH/+oiSPNwaA3nhrkpu1gdXhUkv1fSdt3H3inCTzjAOgN+6T5BdFal3HuNphz2cbbhg+VtWvk2zR0HKcbZRjcVctAAq4Osn3C9V7kJEJn6y+ecPg2Zo9jQagV7YrVOsHjUv4ZPXdnuSecx4t+YbxAPTKPoVqPd64hE9W3eLG69sx7vsO0CdnZrBTpIJjjUv4ZNVcU6TO640KoFe2LFTrpcYlfDK6nQrVerhxAfTGVUm+WqTWbZM82siET0Zz+fBRwVuNC6BXKt356ALjEj77bn5GP05y20LL9TGj9boEeuVlhWp9v3F5k2M0tyY5rkit+ybZxMgAeuPUQrW+NE6QFT4Z2QmFav2FcQH0yuaFanVzFOGTVfDIInWuNfx0CUA/XJXk4iK17prkWUYmfDKai5LcWKRWx9UA0KoztUD4ZHRbFar13cYFQKPeogXCJ6P5VZJLitT610k2MzIAGnREknW0QfhkNA8uVOu3jWskt2sBwNR9UQuET0b3riJ1bpZkB+MCoEG7a4HwyegOLVTrxcYF0AtXzXncXKTmxcYmfDK6/1mo1vcaF0CnPTyD630ueXzWexRLzFuwcFEflnPDJNdVmMca/vvfJtmoyrrn5Vf60/d1Se7eoX6/LsnrvW5sf+n1ds36MCX2fHbLwwrVerVxAfTKgkK1fte4hE9Gc3nqnFF+rySLjAygN/5f6txy+SHDB8InI3hEoVp/aFwAvbKwUK32fgqfrIITC9V6kHEB9MrrCtV6uHGNnxOOGpvHGJ/Lgd21OeFo+m+Gr/dasf1laq5PMt97VD/Z89ldBxaq9QfGBdAr2xaq9RrjEj4Zzempc1Hf+yd5lJEB9MYVqXNM5aZJHm1kwiejv2Cq+LpxlXKTFgBraPtCtZ5rXMIno7kuyTsL1XuokQH0yjFF6pyf5NXGNR5OOGpsHhN6Xicf1dP6zH6ZwbVau8IJR7a/tj2zc1vq7AyznoyBPZ/98JJCtX7MuAB6ZZtCtX7DuIRPRnNaoVr3TbK1kQH0xk+SXFKk1h2T/IWRCZ+M5gmFav2scQH0yoML1XqhcQmfjObc1LmsxYOSPLnHs5pvdQV6qNKdjz5kXMLnytxi1EmSpxSq9Qs9ntN6BWq8S8d67tJRk3OzFjCiNxaq9QXGJXwymquSvKdQvW/p6Zy2LlDj+l5OwARsVajWDxiX8MloXl6o1iOSbNzDGVU483MdLyVgAq5IcmmRWl+SZCMjEz4ZTaUL5f6sh/O5l1UU6LHtioVlhE9GcFKhWjdIv08+Auib25OcV6TWuyU52siET0aze6Fav2BcAL2yR6FaTzQu4bOyDaf4s85PneNqkuTZVg+AXql06aWTjUv4vLM9jXqZKt2l4VPGxQT9Ly2YmOf58M9qqnTppSONS/i8swca9TL9LslXC9V7bk/mcg+rJh1S5ZqwaxlVk95bqNarjEv4nGtto16uXQvV+rjUuAzRmrq/1dI2YjnuWrC3mxSp0+XD2lTpW4nNkuxlZMInozmkUK0/6sE8trFKTp29XpNznyJ1LjSqZh1TqNbPGZfwaQ/BaN5XrE+v9WbNmDneb3IeUKTOLXs8o9b3+lY7m/zFXvbCZyXbz/BnP7ZQn97Q8fVg0yJ1dunuU+sWqfPeBXt7vyJ19vnmDrcUqPHMQv08LfakC59JtrCRXqkvJbm80Ew/0uH1tcpXwE6Mmr7HFKy5yh7FjXu6Tu1bpM59ivX1EzZXwucuRepcf8Y//0GFZrpfkvlewjPlRL7pczyw98NxenmSjxeqt9KtLHdOrduEerF1MNSN6i9n/PNvSPLpQnO93kt4pp6nBXRI385S3ix19nou8dxi9V7iZdXv8HlvdY7smcVm+0Yv45mx53n6ttaCidm8Z8t7ReqdyHNhwT6/w0urv+GzyptkKyc9HFhotsd5Gc+Ms/Knb3stmJj79WhZbx7+9/MFaz+sYL0beXn1M3yyak4vVu9nOtT7Ssf0deVi+FsUqvXPi/XWSWntOa/4e/+pBWu+0GonfDKaHQvV+vR05xp9OxWqdYeO9Hz3QrWuo7esgSNyxwm4xxddhlsK1vzAJC+0+gmfrNy3Uus+tT/uSN8fYfsxddt7ufsQ2wN7ZeljPN9UeFlOLljz31kFhc+W7dFQLZUOwF8nyW4dmP9DvQSm7v5aMDG7FKu3y++Jdz486dbCy3J00br/wSahP+Fzs2L1trbn6wuFendeB9bXTcK0ba0FE1PtrkFbdXQOizO4ecXcB9N3oBb0J3zuX6zePRqrp9q176oH0GoXJe7CPdEfoucTs6hYb1/ZwffAG5bxZ124RvK5hT8ICJ89WMZqbyy7NljTJwv1b7fUOymjskdowdQ9RguE5RH93+X8+eUdWLbKx1C+V/jsvicWq3eDBmuqdleJH3kPnZr9tWDq/lILJmb3Di3Ll7L8Q0rO7MDynVG49oOTbCx8dtumtqdjUenEga1S8+SjvyhYc/VbbK5fsOZ9itT5hIK9Xa8j2+s3JnnUCv7/jd7SZu5a4ZPWtBicLkit+9SeJ8h5sx7B021uJuYALZiJQzO4nueK/E6bmnCS8ElLDm60rmrHz55SrN59rfpTt7cWTMxzitZd+VaIO48YaG7oyDr22+L1H5XkkcJn9zytaN2t7gFbnORfC/XxkGJz36zo+lr5zfqZReteu0CN84v29q8Kr8/npl++14Fl+Kbw2T0u2D1+jy9W72+MbOIeWLj2uxSt21UGJmenonXfnD+9ludaSdYVPpt3qfDZLccXrv3PGq7tiEJ9XC/JqwrUWfnEuMPklan7dOP1vcwH7KlanMEl5pb16LKrOrIc22Zwkpjwycy1fCDy24r18sQCNVa+fE7Vk3a2Ltzz1u8ctFPh3la7BE6fL1p+fYeW5bAkDxY+66v+ia/1N/QtC/Rw7TmPaxqv9bWF19WqZ7y/3mfciXm+FgierJK7JblQ+Kzvxdblifp5kp8UqndB2j4MYwOr1NRVv1j7Xb23TMxBgicz+iB/qvBZ21EdWIaPNl7ffYv185h0++D7WTpUC6bu2Ebr2qIDvX1Dx4Pn3bx8mnVI2r3covA5gq07sAwVLjpe7TIRf2iwpud2YF19dbF6u3Dns1Y/YB/egd4u7HDwTNo+oZXBvd8XdnkBnXDUvg0br6/aLSHnJXl/YzW9owPr6b2K1duFb0ZaPa7dXvC2g2fF7XYfXSl81vPSDi3LsQVqfEHD6/eyHi9N8tiG6uz0J9xGPbMjy7G2UU5MS7c53i7jPcZzS+Pt1YcN4XNK3t+hZalwTc0PF+zrv6aN25p16RjUjxWq9b4d6XlrV0nYrEPr8xmN1LFDkkvG/JwLOjKjPtya8rfCJ7OyTYEady7Y1xaOV31Hh9bTKvdJ36JDPT+usXr+d4d628I3Em9OcvGEnrsLe82f1IP3/43SwT2gXQyfB3Rwmc4qUOPXivZ21i/qLp3VWGUv7rt9nhU+C7gokz2R77QO9KhPZ+1/tEsLM2/BwkVdG9D84qH69jm/vqGDwWSthvo7N3je2Fh4m9fwB8XbVxLgbyy+ji7LWg3VeWuSmwr1cF6xbfIfO74u/jHdtG7jr9vV2bYu6z2gE/Pr4sHqN4QW3agFeqT/eog+6hmO+QQAQPgEAED4BAAA4RMAAOETAACETwAAhE8AAIRPAAAQPgEAED4BAED4BABA+AQAQPgEAADhEwAA4RMAAIRPAACETwAAhE8AABA+AQAQPgEAQPgEAED4BABA+AQAAOETAADhEwAAhE8AAIRPAACETwAAED4BABA+AQBA+AQAQPgEAADhEwAA4RMAAOETAACETwAAhE8AABA+AQAQPgEAED4BAED4BABA+AQAgOX5b2IaoFvWg+GQAAAAAElFTkSuQmCC";const LOGO_ASPECT=0.4620;
+const $=s=>document.querySelector(s);
+const REDUCED=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- colours ---------- */
+const C={pos:0xf5c542,staff:0x5b9dff,srv:0xa7b8cc,av:0xff8a65,cam:0x3fc9b5,guest:0xb48cff,vpn:0x6ee7ff,wan:0xdfe7f3,trunk:0xa9b8cf,bt:0x9ad0ff,down:0xff5466,warn:0xffa43a,ok:0x4ed49b,accent:0x8fb4ff,resp:0x6ee7ff};
+const VLAN_NAME={pos:"VLAN 10 · POS",staff:"VLAN 20 · Staff",srv:"VLAN 30 · Servers",av:"VLAN 40 · AV",cam:"VLAN 50 · Cameras",guest:"VLAN 60 · Guest"};
+const KIND_NAME={wan:"WAN / ISP",trunk:"Trunk (tagged VLANs)",access:"Access port",wifi:"Wi-Fi",bt:"Bluetooth",vpn:"IPsec VPN tunnel",cell:"Cellular (LTE)",hdmi:"HDMI",usb:"USB"};
+
+/* ---------- sites ---------- */
+const SITES={
+  hq:{name:"HQ",sub:"Toronto · 10.0.0.0/16",x:-15,z:0,w:21,d:15.5},
+  s1:{name:"Store 01",sub:"10.1.0.0/16",x:10,z:-13,w:11,d:8.6,n:1},
+  s2:{name:"Store 12",sub:"10.12.0.0/16",x:10,z:0,w:11,d:8.6,n:12},
+  s3:{name:"Store 23",sub:"10.23.0.0/16",x:10,z:13,w:11,d:8.6,n:23}
+};
+
+/* ---------- devices ---------- */
+const NODES=[];const NMAP={};
+function N(id,type,site,rx,rz,name,info){const n=Object.assign({id,type,site,rx,rz,name},info||{});NODES.push(n);NMAP[id]=n;}
+N("hq-modem","modem","hq",-8.8,-5.3,"Fibre ONT (ISP)",{ip:"203.0.113.10 (public, static)",vlan:"WAN",model:"ISP fibre ONT · 1 Gbps"});
+N("hq-fw","firewall","hq",-6.2,-5.3,"HQ firewall",{ip:"10.0.99.1 · gateway .1 on every VLAN",vlan:"WAN + trunk (all VLANs)",model:"FortiGate 100F (HA pair)"});
+N("hq-core","l3switch","hq",-3.2,-5.3,"Core switch (Layer 3)",{ip:"10.0.99.2",vlan:"Trunk",model:"Aruba CX 6300 / Cisco C9300"});
+N("hq-srv","server","hq",-5.6,-2.6,"Infra server",{ip:"10.0.30.10 (static)",vlan:"30 · Servers",model:"Windows Server · DNS, print"});
+N("hq-nas","nas","hq",-3,-2.6,"NAS · file share + backups",{ip:"10.0.30.20 (static)",vlan:"30 · Servers",model:"Synology rack NAS"});
+N("hq-asw1","switch","hq",0.4,-5.3,"Access switch · open office",{ip:"10.0.99.11",vlan:"Trunk uplink · access ports VLAN 20",model:"48-port PoE+"});
+N("hq-asw2","switch","hq",5.6,-5.3,"Access switch · boardroom",{ip:"10.0.99.12",vlan:"Trunk uplink · access ports VLAN 40",model:"24-port PoE+"});
+N("hq-desksw","minisw","hq",-4.6,1.9,"Desk switch (unmanaged)",{ip:"none (unmanaged)",vlan:"20 · Staff",model:"5-port unmanaged"});
+N("hq-ap1","ap","hq",-0.6,0.6,"Wi-Fi AP · open office",{ip:"10.0.99.21",vlan:"Knix-Staff → 20 · Knix-Guest → 60",model:"Wi-Fi 6 ceiling AP (PoE)"});
+N("hq-ap2","ap","hq",6.2,0.6,"Wi-Fi AP · boardroom",{ip:"10.0.99.22",vlan:"Knix-Staff → 20 · Knix-Guest → 60",model:"Wi-Fi 6 ceiling AP (PoE)"});
+N("hq-pc1","pc","hq",-7.6,1.9,"Windows PC · finance",{ip:"10.0.20.45 (DHCP)",vlan:"20 · Staff",model:"Windows 11 · Intune"});
+N("hq-pc2","pc","hq",-4.6,3.7,"Windows PC · operations",{ip:"10.0.20.61 (DHCP)",vlan:"20 · Staff",model:"Windows 11 · Intune"});
+N("hq-printer","printer","hq",-9,5.8,"Printer (MFP)",{ip:"10.0.20.250 (reservation)",vlan:"20 · Staff",model:"Multifunction laser"});
+N("hq-mac1","mac","hq",-1.8,4.6,"MacBook · marketing",{ip:"10.0.20.112 (DHCP)",vlan:"20 · Staff (Wi-Fi)",model:"macOS · MDM enrolled"});
+N("hq-mac2","mac","hq",0.9,4.6,"MacBook · design",{ip:"10.0.20.118 (DHCP)",vlan:"20 · Staff (Wi-Fi)",model:"macOS · MDM enrolled"});
+N("hq-avpc","avpc","hq",9,3,"Teams Room compute",{ip:"10.0.40.15 (reservation)",vlan:"40 · AV",model:"Teams Rooms on Windows"});
+N("hq-display","display","hq",6.2,6.7,"Boardroom display",{ip:"—",vlan:"HDMI from Teams Room",model:"75-inch display"});
+N("hq-avbar","avbar","hq",6.2,6.62,"Camera + mic bar",{ip:"—",vlan:"USB to Teams Room",model:"USB video bar"});
+function storeNodes(s){
+  const n=SITES[s].n;
+  N(s+"-mac","mac",s,2.2,-2.7,"Back-office MacBook",{ip:`10.${n}.20.31 (DHCP)`,vlan:"20 · Staff (Wi-Fi)",model:"macOS · zero-touch via ABM + MDM"});
+  N(s+"-modem","modem",s,-4.3,-2.9,"Cable modem (WAN1)",{ip:"Public IP from ISP (DHCP)",vlan:"WAN1 · primary",model:"ISP cable modem"});
+  N(s+"-lte","lte",s,-4.3,-1.1,"LTE failover (WAN2)",{ip:"Carrier-assigned",vlan:"WAN2 · backup",model:"LTE router"});
+  N(s+"-fw","firewall",s,-1.9,-2.9,"Store firewall · SD-WAN",{ip:`10.${n}.99.1 · gateway .1 per VLAN`,vlan:"WAN1 + WAN2 + trunk",model:"FortiGate 40F"});
+  N(s+"-sw","switch",s,0.7,-2.9,"PoE switch",{ip:`10.${n}.99.2`,vlan:"Trunk uplink",model:"8-port PoE+"});
+  N(s+"-pc","pc",s,3.7,-2.7,"Back-office PC",{ip:`10.${n}.20.21 (DHCP)`,vlan:"20 · Staff",model:"Windows 11 · Intune"});
+  N(s+"-ap","ap",s,0.5,0.4,"Wi-Fi AP",{ip:`10.${n}.99.11`,vlan:"Staff → 20 · Guest → 60",model:"Wi-Fi 6 AP (PoE)"});
+  N(s+"-cam","camera",s,4.7,3.4,"IP camera",{ip:`10.${n}.50.31 (reservation)`,vlan:"50 · Cameras",model:"PoE dome camera"});
+  N(s+"-pos1","pos",s,-2.3,2.45,"POS · register 1",{ip:`10.${n}.10.11 (reservation)`,vlan:"10 · POS",model:"iPad + Shopify POS"});
+  N(s+"-pos2","pos",s,-0.3,2.45,"POS · register 2",{ip:`10.${n}.10.12 (reservation)`,vlan:"10 · POS",model:"iPad + Shopify POS"});
+  N(s+"-rdr1","reader",s,-1.75,2.8,"Card reader · reg 1",{ip:"— (Bluetooth to iPad)",vlan:"Bluetooth",model:"Shopify Tap & Chip reader"});
+  N(s+"-rdr2","reader",s,0.25,2.8,"Card reader · reg 2",{ip:"— (Bluetooth to iPad)",vlan:"Bluetooth",model:"Shopify Tap & Chip reader"});
+  N(s+"-guest","phone",s,2.8,1.5,"Customer phone",{ip:`10.${n}.60.x (DHCP)`,vlan:"60 · Guest (isolated)",model:"Any phone"});
+}
+["s1","s2","s3"].forEach(storeNodes);
+N("internet","cloud",null,-2.5,0,"Internet",{y:8.5});
+N("shopify","service",null,-6.5,-6.5,"Shopify (POS + Admin)",{y:12,col:0x95bf47,role:"Runs the POS app, orders and inventory for online and all stores.",ip:"SaaS",vlan:"—",model:"Cloud"});
+N("pay","service",null,0.5,-7.5,"Shopify Payments",{y:12.6,col:C.pos,role:"Authorizes card payments and returns approved or declined.",ip:"SaaS",vlan:"—",model:"Payment processor"});
+N("m365","service",null,-10,5.5,"Microsoft 365 + Entra ID",{y:11.5,col:C.staff,role:"Email, Teams, OneDrive, and the identity system that runs sign-in, MFA and conditional access.",ip:"SaaS",vlan:"—",model:"Cloud"});
+N("dns","service",null,3,6.5,"Public DNS",{y:11,col:C.srv,role:"Public resolver the HQ DNS server forwards to.",ip:"1.1.1.1",vlan:"—",model:"Resolver"});
+N("backup","service",null,-14,-4,"Off-site backup",{y:10.5,col:0x7dd3c0,role:"Cloud copy of the NAS and Microsoft 365 data. The off-site “1” in the 3-2-1 rule.",ip:"SaaS",vlan:"—",model:"Cloud backup service"});
+N("rmm","service",null,5.5,-2,"Mosyle · Apple MDM",{y:12,col:C.accent,role:"Manages every Mac and iPad: zero-touch enrollment, store and team groups, configuration profiles, apps, OS updates, lock and wipe.",ip:"SaaS",vlan:"—",model:"Apple device management (MDM)"});
+N("abm","service",null,9.5,-6,"Apple Business Manager",{y:13.2,col:0xe8eef6,role:"Apple's record of which company owns each device. It hands new Macs and iPads to the MDM, so they configure themselves when first switched on.",ip:"SaaS",vlan:"—",model:"Apple portal"});
+N("mon","service",null,-3.5,9,"Atera · Windows RMM + monitoring",{y:12.4,col:0xffb86b,role:"Watches every firewall, switch and AP, alerts IT when a store drops or fails over to LTE, and patches the Windows PCs.",ip:"SaaS",vlan:"—",model:"RMM + network monitoring"});
+
+/* ---------- links ---------- */
+const LINKS=[];const LMAP={};
+const key=(a,b)=>a<b?a+"~"+b:b+"~"+a;
+function L(a,b,kind,vlan){const l={a,b,kind,vlan,k:key(a,b)};LINKS.push(l);LMAP[l.k]=l;}
+L("hq-modem","internet","wan");L("hq-fw","hq-modem","wan");L("hq-core","hq-fw","trunk");
+L("hq-core","hq-srv","access","srv");L("hq-core","hq-nas","access","srv");
+L("hq-core","hq-asw1","trunk");L("hq-core","hq-asw2","trunk");
+L("hq-asw1","hq-ap1","trunk");L("hq-asw2","hq-ap2","trunk");
+L("hq-asw1","hq-pc1","access","staff");L("hq-asw1","hq-desksw","access","staff");L("hq-desksw","hq-pc2","access","staff");
+L("hq-asw1","hq-printer","access","staff");
+L("hq-ap1","hq-mac1","wifi","staff");L("hq-ap1","hq-mac2","wifi","staff");
+L("hq-asw2","hq-avpc","access","av");L("hq-avpc","hq-display","hdmi","av");L("hq-avpc","hq-avbar","usb","av");
+function storeLinks(s){
+  L(s+"-ap",s+"-mac","wifi","staff");
+  L(s+"-modem","internet","wan");L(s+"-lte","internet","cell");
+  L(s+"-fw",s+"-modem","wan");L(s+"-fw",s+"-lte","wan");
+  L(s+"-sw",s+"-fw","trunk");L(s+"-sw",s+"-ap","trunk");
+  L(s+"-sw",s+"-pos1","access","pos");L(s+"-sw",s+"-pos2","access","pos");
+  L(s+"-rdr1",s+"-pos1","bt","pos");L(s+"-rdr2",s+"-pos2","bt","pos");
+  L(s+"-sw",s+"-pc","access","staff");L(s+"-sw",s+"-cam","access","cam");
+  L(s+"-ap",s+"-guest","wifi","guest");
+  L(s+"-fw","hq-fw","vpn");
+}
+["s1","s2","s3"].forEach(storeLinks);
+L("internet","shopify","wan");L("internet","pay","wan");L("internet","m365","wan");L("internet","dns","wan");L("internet","backup","wan");L("internet","rmm","wan");L("internet","abm","wan");L("internet","mon","wan");
+
+/* ---------- device knowledge ---------- */
+const TYPE={
+ modem:{label:"ISP modem",role:"Connects the site to the ISP. Everything leaving the site passes through it.",check:["Power and Online / Internet lights","Power-cycle in order: modem, wait 2 min, then firewall","No signal → ISP problem: open a ticket, confirm failover took over"]},
+ lte:{label:"LTE backup",role:"Second internet path over cellular. The firewall switches to it automatically if WAN1 fails.",check:["Signal LED","SIM active and data plan not used up","Firewall shows WAN2 healthy, not just plugged in"]},
+ firewall:{label:"Firewall",role:"Gateway for every VLAN. Decides who can talk to whom, does NAT, terminates the VPN to HQ and runs SD-WAN failover.",check:["Is it checking in to monitoring?","WAN interface has an IP and gateway","VPN tunnel status (Phase 1 and Phase 2)","Recent config or firmware changes"]},
+ l3switch:{label:"Core switch",role:"Routes between HQ VLANs and links every access switch to the firewall.",check:["Uplink to the firewall","CPU and broadcast levels","Spanning Tree topology changes"]},
+ switch:{label:"Access switch",role:"Gives devices a wired port on the right VLAN and powers APs and cameras with PoE.",check:["Port link light and speed","Port VLAN assignment","PoE budget","Loop / broadcast storm alerts"]},
+ minisw:{label:"Unmanaged switch",role:"Adds ports at a desk. No VLANs and no loop protection, so it is a classic cause of network loops.",check:["Two cables to the wall = loop","Power","Replace with a managed port where possible"]},
+ server:{label:"Server",role:"Runs internal DNS and print services for HQ.",check:["Is the service running, not just the server?","Event logs after patch reboots","Disk space"]},
+ nas:{label:"NAS",role:"Shared drives and local backup target. A copy also goes off-site (3-2-1 rule).",check:["Volume health","Share permissions","Last backup and last restore test"]},
+ ap:{label:"Wi-Fi access point",role:"Broadcasts the Staff and Guest SSIDs and puts each on its own VLAN.",check:["PoE power from the switch","Channel and interference","Client load","SSID → VLAN mapping"]},
+ pc:{label:"Windows PC",role:"Staff workstation managed by Intune.",check:["ipconfig /all (169.254.x.x = DHCP failed)","ping gateway → ping 1.1.1.1 → ping a name","nslookup to test DNS","Cable and port light"]},
+ mac:{label:"MacBook",role:"Staff laptop on Wi-Fi, enrolled in MDM.",check:["Forget the Wi-Fi network and rejoin","ifconfig / networksetup for IP details","Keychain prompts after a password change","FileVault: fdesetup status"]},
+ printer:{label:"Printer",role:"Network printer with a DHCP reservation so its IP never moves.",check:["Same VLAN as the user?","IP still matches the reservation","Print queue and driver"]},
+ avpc:{label:"Teams Room",role:"Dedicated meeting computer. Drives the display over HDMI and the camera/mic bar over USB.",check:["Online in Teams admin center","HDMI and USB seated","Display input source"]},
+ display:{label:"Display",role:"Boardroom screen fed over HDMI.",check:["Input source","HDMI cable at both ends","Power / HDMI-CEC"]},
+ avbar:{label:"Camera + mic bar",role:"USB camera, microphones and speaker for the room.",check:["USB connection","Selected devices in Teams settings","Firmware"]},
+ pos:{label:"POS register",role:"iPad running Shopify POS on the isolated POS VLAN.",check:["Can it load any website? (network vs app)","POS app → Settings → Hardware","Restart the app, then the iPad","Right VLAN and IP reservation"]},
+ reader:{label:"Card reader",role:"Takes tap and chip payments and talks to its iPad over Bluetooth.",check:["Battery","Pairing in the POS app","Swap in the spare reader"]},
+ camera:{label:"IP camera",role:"PoE camera on its own VLAN, isolated from POS and staff devices.",check:["PoE power on the port","On VLAN 50","Recording status"]},
+ phone:{label:"Guest device",role:"A customer phone on Guest Wi-Fi. It can reach the internet and nothing else.",check:["Guest VLAN isolation","Captive portal","Bandwidth limit"]},
+ cloud:{label:"Internet",role:"The public internet. Each site reaches it through its own ISP.",check:["Is it one site or every site?","ISP status pages"]},
+ service:{label:"Cloud service",role:"",check:["Vendor status page","Is every site affected, or just one?"]}
+};
+
+/* ---------- flows ---------- */
+const FLOWS={};
+function F(id,o){FLOWS[id]=o;}
+const STORE_FLOW_TYPES=[
+ {t:"pay",name:"Card payment",sub:"Reader → iPad → firewall → Shopify Payments",color:C.pos,
+  nodes:s=>[s+"-rdr1",s+"-pos1",s+"-sw",s+"-fw",s+"-modem","internet","pay"],
+  notes:["Customer taps a card. The reader sends the encrypted payment to the iPad over Bluetooth.","Shopify POS wraps it in HTTPS (TCP 443). The iPad sits on VLAN 10, POS.","Access port on VLAN 10. The same switch powers the AP and camera.","Gateway .1 for VLAN 10. Policy: POS may reach Shopify only. NAT to the public IP.","Cable modem to the ISP. If WAN1 dies, SD-WAN moves this to LTE.","Public internet.","Card authorized; approved or declined travels back the same way."]},
+ {t:"sync",name:"Inventory sync",sub:"Register ↔ Shopify admin",color:0x95bf47,
+  nodes:s=>[s+"-pos2",s+"-sw",s+"-fw",s+"-modem","internet","shopify"],
+  notes:["Register sends the sale and pulls stock levels.","VLAN 10 access port.","Policy allows POS → Shopify, nothing else.","WAN1 to the ISP.","Public internet.","Shopify updates stock across online, Amazon and all 23 stores."]},
+ {t:"hq",name:"Back office → HQ files",sub:"Through the site-to-site VPN",color:C.staff,
+  nodes:s=>[s+"-pc",s+"-sw",s+"-fw","hq-fw","hq-core","hq-nas"],
+  notes:["Back-office PC opens the HQ shared drive (SMB 445).","VLAN 20 access port.","Store firewall encrypts it into the IPsec tunnel to HQ.","HQ firewall decrypts and checks policy: store staff → file share is allowed.","Core routes it to VLAN 30, Servers.","NAS serves the file."]},
+ {t:"guest",name:"Guest Wi-Fi",sub:"Customer phone → internet only",color:C.guest,
+  nodes:s=>[s+"-guest",s+"-ap",s+"-sw",s+"-fw",s+"-modem","internet"],
+  notes:["Customer joins Knix-Guest.","AP tags guest traffic as VLAN 60 with client isolation on.","Tagged trunk to the firewall.","Policy: Guest → internet only. Blocked from POS, Staff and the VPN.","WAN1 to the ISP.","Public internet."]},
+ {t:"mon",name:"Monitoring heartbeat",sub:"Store firewall → monitoring platform",color:C.accent,
+  nodes:s=>[s+"-fw",s+"-modem","internet","mon"],
+  notes:["Firewall reports status, WAN health and failover events every minute.","WAN1, or LTE if the store has failed over.","Public internet.","A missed heartbeat alerts IT before the store has to call."]},
+ {t:"ztd",name:"Zero-touch Mac setup",sub:"Sealed Mac → Apple → MDM → configured",color:0xf3f6fb,rt:false,
+  nodes:s=>[s+"-mac",s+"-ap",s+"-sw",s+"-fw",s+"-modem","internet","abm","internet","rmm","internet",s+"-modem",s+"-fw",s+"-sw",s+"-ap",s+"-mac"],
+  notes:["A new Mac, still sealed until today, joins the staff Wi-Fi and starts setup.","The AP puts it on VLAN 20, Staff.","Tagged trunk to the firewall.","Staff VLAN may reach Apple (TCP 443 and 5223). Guest Wi-Fi's captive portal would block this.","Out through WAN1.","Public internet.","Apple Business Manager checks the serial: owned by this company, assigned to the MDM.","The Mac is told where to enroll.","The MDM enrolls it, makes it supervised, and places it in its store group.","Profiles and apps head back down.","Back in through WAN1.","Firewall passes the return traffic.","Switch to the AP.","Wi-Fi to the Mac.","Store Wi-Fi, apps, printer and FileVault are applied. Ready, and IT never opened the box."]}
+];
+function storeFlows(s){STORE_FLOW_TYPES.forEach(ft=>F(s+"-"+ft.t,{name:ft.name,sub:ft.sub,color:ft.color,nodes:ft.nodes(s),notes:ft.notes,store:s,rt:ft.rt!==false}));}
+["s1","s2","s3"].forEach(storeFlows);
+F("hq-teams",{name:"Teams meeting",sub:"Boardroom → Microsoft 365",color:C.av,rt:true,nodes:["hq-avbar","hq-avpc","hq-asw2","hq-core","hq-fw","hq-modem","internet","m365"],
+ notes:["Camera and mics send audio/video to the Teams Room over USB.","Teams Room encodes the call. Media uses UDP 3478–3481 for low delay.","Access port on VLAN 40, AV.","Core routes VLAN 40 to the firewall.","QoS gives Teams media priority. NAT to the public IP.","Fibre to the ISP.","Public internet.","Teams relays the call to the other people in the meeting."]});
+F("hq-m365",{name:"Mac → Microsoft 365",sub:"Wi-Fi user opening Outlook",color:C.staff,rt:true,nodes:["hq-mac1","hq-ap1","hq-asw1","hq-core","hq-fw","hq-modem","internet","m365"],
+ notes:["MacBook on the Knix-Staff SSID (WPA2/3-Enterprise).","AP maps the SSID to VLAN 20 and sends it up a tagged trunk.","Trunk port carries VLANs 20 and 60.","Routes between VLANs and sends internet traffic to the firewall.","Policy allows Staff → internet with web filtering. NAT.","Fibre to the ISP.","Public internet.","Entra ID checks MFA and conditional access, then Outlook syncs over HTTPS."]});
+F("hq-dns",{name:"DNS lookup",sub:"PC → internal DNS → public DNS",color:C.srv,rt:true,nodes:["hq-pc1","hq-asw1","hq-core","hq-srv","hq-core","hq-fw","hq-modem","internet","dns"],
+ notes:["PC asks “what is shopify.com?” on UDP 53.","Access port, VLAN 20.","Core routes the query to the Servers VLAN.","Internal DNS answers HQ names itself and forwards the rest.","Forwarded query heads out.","Firewall lets only the DNS server send DNS to the internet.","Fibre to the ISP.","Public internet.","Resolver returns the IP. The answer goes back to the PC."]});
+F("hq-print",{name:"Print from a Mac",sub:"Same VLAN, no firewall hop",color:C.staff,rt:false,nodes:["hq-mac2","hq-ap1","hq-asw1","hq-printer"],
+ notes:["macOS sends the job over IPP (port 631).","Wi-Fi to VLAN 20.","Same VLAN, so the switch delivers it directly.","Printer’s reservation keeps its IP fixed, so the Mac always finds it."]});
+F("hq-mdm",{name:"Mac checks in with MDM",sub:"Apps and security policies pushed down",color:C.accent,rt:true,nodes:["hq-mac1","hq-ap1","hq-asw1","hq-core","hq-fw","hq-modem","internet","rmm"],
+ notes:["The Mac checks in with MDM every few hours.","Wi-Fi to VLAN 20.","Trunk uplink to the core.","Routes to the firewall.","NAT out to the internet.","Fibre to the ISP.","Public internet.","MDM sends back apps, settings, FileVault and password policies (cyan reply)."]});
+F("hq-backup",{name:"Nightly off-site backup",sub:"NAS → cloud (3-2-1 rule)",color:0x7dd3c0,rt:false,nodes:["hq-nas","hq-core","hq-fw","hq-modem","internet","backup"],
+ notes:["NAS starts its encrypted nightly backup after hours.","Routes out of the Servers VLAN.","Policy allows only the NAS to reach the backup service.","Fibre to the ISP.","Public internet.","Off-site copy, restore-tested every quarter."]});
+const HQ_FLOWS=["hq-teams","hq-m365","hq-mdm","hq-dns","hq-print","hq-backup"];
+
+/* ---------- the job description, mapped ---------- */
+const ROLE=[
+ {t:"First point of contact for HQ",jd:"Resolve hardware, software and network issues for HQ employees, remotely and in person.",where:"HQ desks: Windows PCs, MacBooks, the printer.",nodes:["hq-pc1","hq-pc2","hq-mac1","hq-mac2","hq-printer"],view:"hq",
+  do:["Log every request and triage by impact: an outage beats one user","Fix remotely first; walk over when hands-on is faster","Turn repeat issues into an SOP"],drill:"dns"},
+ {t:"Inventory and documentation",jd:"Keep IT hardware and software inventory current; document systems, network configs and support procedures.",where:"Docs tab: inventory, IP plan, DR targets, runbooks. This model is the network diagram.",nodes:null,view:"overview",
+  do:["Record serial, owner, location and warranty at intake","Update diagrams and the IP plan after every change","Runbooks for repeat work: onboarding, store installs, upgrades"],tab:"docs"},
+ {t:"Accounts and access control",jd:"Create, manage and disable user accounts with appropriate access controls.",where:"Microsoft 365 + Entra ID, and every staff device that signs in to it.",nodes:["m365","hq-mac1","hq-pc1","s1-pc"],view:"cloud",
+  do:["Onboarding: account, licences, role-based groups, MFA, laptop ready on day one","Offboarding: disable, revoke sessions, remove app access, recover the device","Quarterly access reviews for least privilege"],drill:"phish"},
+ {t:"Zero-touch device setup",jd:"Ship Macs and iPads sealed and have them configure themselves for their store or team, with no IT time per device.",where:"Apple Business Manager and the Apple MDM in the cloud; the back-office MacBook in every store.",nodes:["abm","rmm","s2-mac"],view:"s2",flow:"s2-ztd",
+  do:["Buy through the business channel so every serial lands in Apple Business Manager","Layered MDM groups: all Macs → stores → each store","Pre-assign serials, pilot one device, run a compliance check after every rollout"],drill:"ztd"},
+ {t:"Network monitoring and maintenance",jd:"Monitor and troubleshoot network performance, do routine maintenance, install and configure hardware and software.",where:"Monitoring / Windows RMM in the cloud, heartbeats from every store firewall, switches and APs.",nodes:["mon","hq-core","hq-asw1","hq-asw2","hq-ap1","hq-ap2","s1-fw","s2-fw","s3-fw"],view:"overview",flow:"s1-mon",
+  do:["Alerts for device down, WAN failover, high CPU, DHCP scope over 80%","Monthly patch and firmware window after hours","Deploy apps and settings through MDM, not by hand"],drill:"loop"},
+ {t:"Security policy and training",jd:"Educate employees on IT security policies; train staff on new systems and tools.",where:"Every staff device. The phishing drill starts on a design MacBook.",nodes:["hq-mac1","hq-mac2","hq-pc1","hq-pc2"],view:"hq",
+  do:["Short security briefing in every onboarding","Phishing simulations with a quick, blame-free follow-up","One-page guides whenever a new tool rolls out"],drill:"phish"},
+ {t:"Projects, testing and disaster recovery",jd:"Join IT projects, test and deploy new solutions, help develop IT policies and disaster recovery.",where:"NAS with nightly off-site backup; LTE failover at every store.",nodes:["hq-nas","backup","s1-lte","s2-lte","s3-lte"],view:"hq",flow:"hq-backup",
+  do:["Pilot with a small group before company-wide rollout","3-2-1 backups and a restore test every quarter","RTO and RPO per system (Docs tab)"],tab:"docs"},
+ {t:"Connectivity for 23 stores",jd:"Keep all 23 stores connected, troubleshoot local outages, and help deploy store hardware.",where:"The store template: cable + LTE, SD-WAN firewall, PoE switch, AP, POS.",nodes:["s2-modem","s2-lte","s2-fw","s2-sw","s2-ap"],view:"s2",flow:"s2-pay",
+  do:["Triage remotely: scope, monitoring, modem lights, then the ISP","Keep the store selling first (LTE, backup procedure)","Pre-stage and test store kits at HQ before install day"],drill:"isp"},
+ {t:"HQ connectivity and upgrades",jd:"Troubleshoot complex office connectivity and take part in scheduled network hardware and routing upgrades.",where:"HQ comms room: ONT, firewall HA pair, core and access switches, VPN to every store.",nodes:["hq-modem","hq-fw","hq-core","hq-asw1","hq-asw2"],view:"hq",
+  do:["Change plan with config backups and a rollback","Work after hours and warn users first","Test every VPN tunnel and key app after the change"],drill:"vpn"},
+ {t:"Evaluating new software",jd:"Partner with business departments on new software and make sure it meets security policy and best practice.",where:"The cloud services. Each new one is another login and another path for data to leave.",nodes:["shopify","m365","backup","rmm"],view:"cloud",
+  do:["SSO + MFA, data location, SOC 2 report, admin roles","Can access be removed when someone leaves?","Does it duplicate something we already pay for?"],tab:"docs"},
+ {t:"Vulnerability monitoring and hardening",jd:"Monitor the HQ network for vulnerabilities; recommend and implement security improvements.",where:"Firewall policies, VLAN segmentation, guest isolation, the unmanaged desk switch.",nodes:["hq-fw","hq-core","hq-desksw","s1-guest","s1-fw"],view:"hq",flow:"s1-guest",
+  do:["Monthly vulnerability scan; patch by risk","Keep POS, staff, guest, cameras and AV on separate VLANs","BPDU guard, MFA number matching, block external auto-forwarding"],drill:"loop"},
+ {t:"AV and conferencing",jd:"Familiarity with microphones, speakers, projectors and conferencing tools.",where:"Boardroom: Teams Room, display, camera and mic bar.",nodes:["hq-avpc","hq-display","hq-avbar"],view:"hq",flow:"hq-teams",
+  do:["Check meeting rooms each morning before exec meetings","Lock display inputs and label cables","Keep a laptop fallback ready"],drill:"av"},
+ {t:"Shopify",jd:"Experience with Shopify is highly desirable.",where:"POS registers, card readers, Shopify admin and Payments.",nodes:["s1-pos1","s1-pos2","s1-rdr1","s1-rdr2","shopify","pay"],view:"s1",flow:"s1-pay",
+  do:["Staff accounts and POS permissions in Shopify admin","Reader pairing and a spare reader per store","Tell a network problem from a POS problem in the first minute"],drill:"reader"}
+];
+
+/* ---------- guided tour ---------- */
+const TOUR=[
+ {view:"overview",title:"One HQ, 23 stores, the cloud",text:"Every store runs the same template, so these three stand in for all 23. Most business systems are cloud services: Shopify, Microsoft 365, backup and monitoring."},
+ {view:"hq",nodes:["hq-modem","hq-fw","hq-core","hq-asw1","hq-asw2"],title:"HQ backbone",text:"Fibre into a firewall pair, a Layer 3 core, then access switches. Staff, servers, AV and guest each get their own VLAN."},
+ {view:"s1",nodes:["s1-modem","s1-lte","s1-fw","s1-sw","s1-ap","s1-pos1","s1-pos2","s1-cam"],title:"The store template",text:"Two internet paths (cable and LTE), an SD-WAN firewall, a PoE switch, two Shopify POS registers, Wi-Fi and a camera."},
+ {view:"s1",flow:"s1-pay",title:"A card payment",text:"Reader → iPad over Bluetooth → POS VLAN → firewall → Shopify Payments. The POS VLAN can reach Shopify and nothing else, which keeps PCI scope small."},
+ {view:"s2",flow:"s2-pay",temp:{"s2-modem":"down"},title:"When the cable line drops",text:"SD-WAN moves payments to LTE in seconds, so the store keeps selling. Monitoring alerts me before the store has to call."},
+ {view:"overview",flow:"s1-hq",title:"Stores to HQ",text:"Each store has an encrypted IPsec tunnel to HQ for the file share and back-office tools. Payments never use the tunnel."},
+ {view:"cloud",nodes:["m365","rmm","hq-fw"],flow:"hq-mdm",title:"Identity, devices and security",text:"Entra ID handles sign-in, MFA and access. MDM pushes apps and security policies. The firewall enforces who can talk to whom."},
+ {view:"s2",nodes:["abm","rmm","s2-mac"],flow:"s2-ztd",title:"Zero-touch Mac setup",text:"A new Mac ships sealed. It asks Apple who owns it, Apple hands it to the MDM, and it arrives configured for its store. Follow the white packet on the full trip."},
+ {view:"hq",flow:"hq-backup",title:"Disaster recovery",text:"The NAS backs up off-site every night (3-2-1) and gets a restore test every quarter. Targets for each system are in the Docs tab."},
+ {view:"overview",title:"How I’d support it",text:"Every store runs the same template, so growth is repeatable: press “+ New store” to build the next one live. The Incidents tab has ten realistic tickets, from a store offline to a Mac stuck at setup.",end:"incidents"}
+];
+
+/* ---------- incidents ---------- */
+const SCEN=[
+ {id:"isp",sev:"p1",site:"s2",title:"“Nothing works, we can’t take payments”",sub:"Store 12 · sales stopped",
+  caller:"Store 12 manager",time:"Sat 11:04",msg:"Nothing works. Both registers say no internet and there’s a line of customers. Can you fix it?",
+  apply:{nodes:{"s2-modem":"down","s2-lte":"down"},links:[["s2-modem","internet"]]},focus:["s2-pay","s2-sync","s2-guest","s2-hq"],
+  checks:[
+   {q:"Check the monitoring dashboard",a:"Store 12 firewall stopped checking in at 10:52.\nStore 01 and Store 23 are online.\n→ Only this store is affected.",tag:"clue"},
+   {q:"Ask staff to load a website on a phone on store Wi-Fi",a:"Phone shows full Wi-Fi bars but “No internet connection”.\n→ It’s not just the registers.",tag:"clue"},
+   {q:"Have staff read the modem lights",a:"Power: solid. DS / US: flashing. Online: OFF.\n→ The modem can’t lock onto the ISP signal.",tag:"clue"},
+   {q:"Check why LTE failover didn’t take over",a:"Firewall: WAN2 (LTE) “no link”.\nLTE router signal LED is off. The SIM was never activated after the install.",tag:"clue"},
+   {q:"Call the ISP / check their status page",a:"ISP confirms a cable outage in the area. Estimated restore: 3 hours.",tag:"clue"},
+   {q:"Restart the Shopify POS app on both iPads",a:"No change. The app still can’t reach Shopify. Restarting an app can’t fix a missing internet connection.",tag:"miss"},
+   {q:"Reboot the store PoE switch",a:"Registers, AP and camera lose power for 2 minutes and come back with the same problem. Don’t reboot things blindly during trading hours.",tag:"risk"}],
+  opts:["ISP outage, and the LTE backup isn’t working (SIM never activated)","Shopify is down","The PoE switch failed","Both iPads need an iOS update"],ans:0,
+  hint:"Other stores are fine and the phone on Wi-Fi has no internet either. Look at what connects this one store to the ISP.",
+  fix:["Tell the manager what’s happening and the ETA. Switch registers to the store’s backup procedure (cash, or offline payments if enabled) so sales continue.","Open an ISP ticket; note the ticket number and ETA.","Activate the LTE SIM with the carrier and confirm the firewall fails over to WAN2.","Payments now run over LTE. Fail back once the ISP restores."],
+  prevent:["Monitor WAN2 health so a dead backup alerts before you need it","Test failover at every store quarterly (pull WAN1 after close)","Add “activate and test LTE” to the new-store install checklist"],
+  say:"I checked scope first, kept the store selling, proved it was the ISP from the modem lights, then fixed the backup so it doesn’t happen twice.",
+  after:{nodes:{"s2-lte":"ok"}},afterNote:"The ISP is still down, but Store 12 is now selling over LTE. Watch the payment packets take the cellular path."},
+ {id:"reader",sev:"p2",site:"s1",title:"“Register 2 says the card reader isn’t connected”",sub:"Store 01 · one register down",
+  caller:"Store 01 cashier",time:"Tue 10:12",msg:"Register 2 says the card reader isn’t connected. Register 1 is working fine.",
+  apply:{nodes:{"s1-rdr2":"warn"},links:[["s1-rdr2","s1-pos2"]]},focus:["s1-pay","s1-sync"],extraFlows:[["s1-rdr2","s1-pos2","s1-sw","s1-fw","s1-modem","internet","pay"]],
+  checks:[
+   {q:"Check monitoring for Store 01",a:"All Store 01 devices online. Register 1 took a payment 1 minute ago.\n→ The store network is healthy.",tag:"clue"},
+   {q:"Ask the cashier to open a website on register 2",a:"Loads fine. Register 2 has internet.\n→ Not a network problem.",tag:"clue"},
+   {q:"POS app → Settings → Hardware on register 2",a:"Card reader: Not connected.\nLast connected yesterday 6:40 pm, before an iPadOS update installed overnight.",tag:"clue"},
+   {q:"Look at the reader’s light and battery",a:"Battery 70%. Light blinking: the reader is waiting to pair.",tag:"clue"},
+   {q:"Check the Shopify status page",a:"All systems operational. Good habit, but register 1 working had already ruled this out.",tag:"miss"},
+   {q:"Reboot the store modem and firewall",a:"Both registers go offline for 4 minutes, including the working one. Didn’t help. One broken register just became two.",tag:"risk"}],
+  opts:["The card reader lost its Bluetooth pairing after the iPad updated","Store internet is down","Register 2 is on the wrong VLAN","Shopify Payments outage"],ans:0,
+  hint:"Register 2 can load websites, and register 1 is taking payments. What’s different about register 2?",
+  fix:["In Shopify POS: Settings → Hardware → connect the card reader and re-pair it","Run a small test transaction","Still failing: forget it in iPad Bluetooth settings, power-cycle the reader and pair again, or swap in the spare"],
+  prevent:["Keep one charged spare reader per store","Schedule iPad updates after close and test the reader in the morning","Add “re-pair the reader” to the store quick-fix guide so staff can self-serve"],
+  say:"One register worked, so the network was fine. Scope narrowed it to one device in two minutes, without rebooting anything the other register depends on."},
+ {id:"dhcp",sev:"p2",site:"s3",title:"“New laptop connects but nothing loads”",sub:"Store 23 · new devices offline",
+  caller:"Store 23 manager",time:"Mon 09:30",msg:"The back-office PC stopped working after a restart, and the new laptop connects but nothing loads. Registers and phones are fine.",
+  apply:{nodes:{"s3-pc":"down"}},focus:["s3-hq","s3-pay"],
+  checks:[
+   {q:"Run ipconfig /all on the back-office PC",a:"IPv4 Address: 169.254.88.14\nDefault Gateway: (blank)\n→ The PC didn’t get an address from DHCP.",tag:"clue"},
+   {q:"Check the cable and switch port lights",a:"Link light on, port 6 up at 1 Gbps.\n→ The physical connection is fine.",tag:"clue"},
+   {q:"Check the DHCP lease table on the store firewall",a:"VLAN 20 scope 10.23.20.100–.129: 30 of 30 addresses leased.\n19 leases belong to devices not seen in over a week. Lease time: 7 days.",tag:"clue"},
+   {q:"Check why the registers still work",a:"POS VLAN 10 has its own scope with reservations, so registers are unaffected.",tag:"clue"},
+   {q:"Reinstall the PC’s network driver",a:"Takes 20 minutes and changes nothing. The network card works; there’s just no address to hand it.",tag:"miss"}],
+  opts:["The Staff VLAN DHCP scope is full","Bad Ethernet cable","DNS server is down","ISP outage"],ans:0,
+  hint:"169.254 means the device asked for an address and nobody gave it one. Devices that already had a lease are fine.",
+  fix:["Clear the stale leases","On the PC: ipconfig /release then ipconfig /renew. It gets a 10.23.20.x address","Expand the scope (e.g. .100–.199) and shorten the lease to 1 day"],
+  prevent:["Alert when any scope passes 80% used","Put personal and vendor devices on Guest Wi-Fi, not Staff","Record every store’s scopes in the IP plan"],
+  say:"169.254 meant DHCP failed. Old devices still had leases and new ones couldn’t get one, so I went straight to the scope."},
+ {id:"dns",sev:"p1",site:"hq",title:"“Websites won’t load, but my Teams call didn’t drop”",sub:"HQ · five tickets in 3 minutes",
+  caller:"Several HQ staff",time:"Wed 08:47",msg:"Websites and the Shopify admin won’t load, but my Teams call is still going. Is the internet down?",
+  apply:{nodes:{"hq-srv":"down"}},focus:["hq-dns","hq-m365"],
+  checks:[
+   {q:"ping 1.1.1.1 from a user’s PC",a:"Reply from 1.1.1.1: bytes=32 time=9ms TTL=58\n→ Internet connectivity is fine.",tag:"clue"},
+   {q:"ping shopify.com",a:"Ping request could not find host shopify.com.",tag:"clue"},
+   {q:"nslookup shopify.com",a:"DNS request timed out.\nServer: 10.0.30.10",tag:"clue"},
+   {q:"ipconfig /all: which DNS servers?",a:"DNS Servers: 10.0.30.10\n(no secondary)",tag:"clue"},
+   {q:"Check the infra server",a:"Server is up, but the DNS Server service is stopped. It failed to start after last night’s Windows Update reboot.",tag:"clue"},
+   {q:"Reboot the HQ firewall",a:"Everyone drops off Teams for 3 minutes. Websites still don’t load afterwards.",tag:"risk"}],
+  opts:["DNS service stopped on the infra server, and DHCP hands out only that one DNS server","ISP outage","Microsoft 365 outage","Wi-Fi interference"],ans:0,
+  hint:"Pinging an IP works, pinging a name doesn’t. Which service turns names into IPs?",
+  fix:["Start the DNS Server service and confirm nslookup resolves","Users retry, or run ipconfig /flushdns","Set the service to restart automatically on failure"],
+  prevent:["Hand out two DNS servers through DHCP","Monitor the DNS service, not just whether the server is up","Check critical services after patch-night reboots"],
+  say:"It worked by IP and failed by name, so it was DNS. nslookup told me which server, and the server told me why."},
+ {id:"av",sev:"p1",site:"hq",title:"“Boardroom screen says No Signal”",sub:"HQ · exec meeting in 5 minutes",
+  caller:"Executive assistant",time:"Thu 13:55",msg:"The boardroom screen says No Signal and the CEO’s meeting starts in 5 minutes!",
+  apply:{nodes:{"hq-display":"warn"},links:[["hq-avpc","hq-display"]]},focus:["hq-teams"],
+  checks:[
+   {q:"Check the Teams Room in the admin center",a:"Teams Room is online and signed in. Camera and mic bar healthy.\n→ Network and account are fine.",tag:"clue"},
+   {q:"Look at the display’s input",a:"Display is on HDMI 2. The Teams Room is plugged into HDMI 1. Someone presented from a laptop earlier and left it on HDMI 2.",tag:"clue"},
+   {q:"Check the HDMI cable at both ends",a:"Seated at the display; slightly loose at the Teams Room end.",tag:"clue"},
+   {q:"Restart the Teams Room",a:"Takes 4 minutes to boot. Screen is still on the wrong input.",tag:"miss"},
+   {q:"Restart the boardroom network switch",a:"Teams Room goes offline for 3 minutes. Screen still says No Signal. Now you have 2 minutes left.",tag:"risk"}],
+  opts:["Display on the wrong input, plus a loose HDMI cable","Network outage in the boardroom","Teams Room account locked","Projector bulb failure"],ans:0,
+  hint:"The Teams Room is online and healthy. The problem is between it and the screen.",
+  fix:["Switch the display to HDMI 1 and reseat the cable","Join a test meeting to check screen, camera and mic","Stay until the meeting starts. Backup: run it from a laptop with the USB bar"],
+  prevent:["Turn on HDMI-CEC / auto input switching, or lock the input","Label cables and ports at both ends","Check VIP rooms each morning before exec meetings"],
+  say:"With five minutes, I checked the simplest physical thing first, and I always have a fallback for a VIP meeting."},
+ {id:"phish",sev:"p1",site:"hq",title:"“I entered my password on a link, then approved an MFA prompt”",sub:"HQ · security incident",
+  caller:"Design team member",time:"Fri 09:20",msg:"I clicked a link in an email about a shared invoice and typed my password. Then I got two MFA prompts and approved one by accident.",
+  apply:{nodes:{"hq-mac2":"down"}},focus:["hq-m365"],bad:[["hq-mac2","hq-ap1","hq-asw1","hq-core","hq-fw","hq-modem","internet"]],
+  checks:[
+   {q:"Check Defender / EDR alerts for this Mac",a:"Alert 09:14: credential-phishing site visited.\nNo malware executed on the device.",tag:"clue"},
+   {q:"Check Entra ID sign-in logs",a:"09:16 successful sign-in from an unfamiliar country.\nMFA satisfied by push approval.",tag:"clue"},
+   {q:"Check the mailbox for new inbox rules",a:"New rule created 09:18: forward emails containing “invoice” or “payment” to an external address.",tag:"clue"},
+   {q:"Search for the same email in other mailboxes",a:"Sent to 38 staff. 2 others clicked; neither entered a password.",tag:"clue"},
+   {q:"Tell the user to change their password later today",a:"The attacker still holds an active session token. A password change alone doesn’t sign them out.",tag:"risk"}],
+  opts:["Account compromised through phishing and MFA fatigue; attacker set up mail forwarding","The Mac has a virus","Only a spam filter setting","No action needed, MFA protected the account"],ans:0,
+  hint:"Look at the sign-in log and what changed in the mailbox after the click.",
+  fix:["Revoke all sessions, reset the password, re-register MFA","Delete the forwarding rule and review what was forwarded","Isolate the Mac in EDR while it’s scanned","Purge the email from all 38 mailboxes; block the sender and URL","Thank the user for reporting fast; follow up with the two who clicked"],
+  prevent:["Turn on MFA number matching","Block auto-forwarding to external domains","Short phishing refresher using this real example (no names)"],
+  say:"Contain first: sessions, password, rule. Then scope it, then educate. Fast reporting should feel safe."},
+ {id:"loop",sev:"p1",site:"hq",title:"“Everything is crawling, Teams keeps freezing”",sub:"HQ · open office slowing to a halt",
+  caller:"Several HQ staff",time:"Tue 14:12",msg:"Everything is crawling, Teams keeps freezing, and now some of us can’t connect at all.",
+  apply:{nodes:{"hq-asw1":"storm","hq-desksw":"warn"},loop:true},focus:["hq-m365","hq-dns","hq-print"],
+  checks:[
+   {q:"Check who is affected",a:"Only users on the open-office switch (wired and Wi-Fi). The boardroom on the other switch is fine.",tag:"clue"},
+   {q:"Check the open-office switch dashboard",a:"CPU 100%. Broadcast traffic on ports 14 and 22 is huge and climbing.",tag:"clue"},
+   {q:"Trace ports 14 and 22",a:"Both go to the same desk. A small unmanaged switch installed today for a new hire has two cables to the wall, creating a loop.",tag:"clue"},
+   {q:"Check the firewall and ISP",a:"WAN normal, firewall CPU normal.\n→ Not an internet problem.",tag:"clue"},
+   {q:"Reboot the core switch",a:"All of HQ drops for 5 minutes. The storm comes straight back when it boots.",tag:"risk"}],
+  opts:["A switching loop from the desk switch is causing a broadcast storm","ISP outage","DNS failure","DHCP scope full"],ans:0,
+  hint:"One switch, 100% CPU, broadcast traffic climbing on two ports that lead to the same desk.",
+  fix:["Unplug the second cable from the desk switch","Watch switch CPU and broadcasts drop to normal","Confirm Teams and connectivity recover"],
+  prevent:["Spanning Tree with BPDU Guard and loop protection on every access port","Storm control to cap broadcast traffic","No unmanaged switches; patch extra ports properly"],
+  say:"Scope pointed to one switch, the switch showed a broadcast storm, the ports led me to the loop. Then I made sure it can’t happen again."},
+ {id:"central",sev:"p1",site:"all",title:"“Cards keep failing” from three stores at once",sub:"All stores · payments failing",
+  caller:"Stores 01, 12 and 23",time:"Sat 15:46",msg:"Cards keep failing with a processing error. (Three stores called within four minutes.)",
+  apply:{nodes:{"pay":"down"}},focus:["s1-pay","s2-pay","s3-pay"],
+  checks:[
+   {q:"Check monitoring for every store",a:"All 23 store firewalls online. Internet and VPN tunnels up everywhere.",tag:"clue"},
+   {q:"Ask one store to load a website",a:"Works fine. Store internet is healthy.",tag:"clue"},
+   {q:"Check the Shopify status page",a:"Shopify Payments: degraded performance, investigating. Started 15:42.",tag:"clue"},
+   {q:"Remote into Store 01 and reboot its firewall",a:"Store 01 goes fully offline for 4 minutes, and payments still fail afterwards.",tag:"risk"}],
+  opts:["Upstream outage at the payment processor","Every store’s ISP failed at once","HQ firewall down","Card readers need a firmware update"],ans:0,
+  hint:"When many sites fail at the same moment, look for the one thing they all share.",
+  fix:["Send one message to all stores: known payment outage, use the backup procedure, don’t restart equipment","Watch the status page and update stores every 15–30 minutes","Test a transaction when it recovers, then send the all-clear"],
+  prevent:["Keep a pre-written store outage message ready","Make sure every store knows the backup payment procedure","Subscribe IT to Shopify status alerts"],
+  say:"When many sites fail together, I look for what they share. Communicating fast mattered more than touching any device."},
+ {id:"ztd",sev:"p3",site:"s3",title:"“The new Mac is stuck on setup”",sub:"Store 23 · zero-touch enrollment",
+  caller:"Store 23 manager",time:"Thu 09:40",msg:"We opened the new MacBook like you said and connected to Wi-Fi, but it says it can’t connect to the activation server.",
+  apply:{nodes:{"s3-mac":"down"}},focus:["s3-ztd"],
+  checks:[
+   {q:"Ask which Wi-Fi network the Mac joined",a:"Knix-Guest. A login page (captive portal) is waiting in the background.",tag:"clue"},
+   {q:"Look up the serial in Apple Business Manager",a:"Serial found, assigned to the Apple MDM.\n→ Ownership is fine.",tag:"clue"},
+   {q:"Check the Mac's group in the MDM",a:"Pre-assigned to Stores › Store 23. Its configuration is ready and waiting.",tag:"clue"},
+   {q:"Check firewall policy for Apple traffic",a:"Guest VLAN: internet only after the captive portal login, so Apple's enrollment servers are unreachable.\nStaff VLAN: Apple allowed (TCP 443, 5223).",tag:"clue"},
+   {q:"Reinstall macOS from a USB installer",a:"Takes an hour and changes nothing. The Mac is fine; the network it's on isn't.",tag:"risk"}],
+  opts:["The Mac is on guest Wi-Fi, and the captive portal blocks Apple's enrollment servers","The serial isn't in Apple Business Manager","The MDM push certificate expired","The Mac is faulty"],ans:0,
+  hint:"Ownership and the MDM group are both fine. What is different about the network this Mac is on?",
+  fix:["Join the staff Wi-Fi or plug into Ethernet, then restart setup","Watch it enroll and land in the Store 23 group in the MDM","Confirm the profiles, apps and printer arrived"],
+  prevent:["Put “use staff Wi-Fi or Ethernet” in the one-page guide shipped with every Mac","Give store managers the staff Wi-Fi details for setup day","Run a compliance check after every store rollout"],
+  say:"Apple ownership and the MDM group were fine, so it had to be the network: guest Wi-Fi's captive portal blocks Apple. Staff Wi-Fi fixed it, and the setup guide now says so."},
+ {id:"vpn",sev:"p3",site:"s1",title:"“We can sell, but can’t open the HQ shared drive”",sub:"Store 01 · tunnel to HQ down",
+  caller:"Store 01 manager",time:"Wed 08:15",msg:"Registers are fine, but the back-office PC can’t open the shared drive or the HQ schedule since this morning.",
+  apply:{links:[["s1-fw","hq-fw"]]},focus:["s1-hq","s1-pay"],
+  checks:[
+   {q:"Check payments and internet at Store 01",a:"Payments working, internet fine. Only HQ resources fail.",tag:"clue"},
+   {q:"ping 10.0.30.20 (HQ NAS) from the back-office PC",a:"Request timed out.\nRequest timed out.",tag:"clue"},
+   {q:"Check VPN status on both firewalls",a:"Store 01 ↔ HQ: Phase 1 up, Phase 2 down.\nStore 12 and Store 23 tunnels: up.",tag:"clue"},
+   {q:"Check the change log",a:"HQ firewall firmware was upgraded last night. The new version changed its default encryption proposals. Store 01 still runs older firmware.",tag:"clue"},
+   {q:"Remap the shared drive on the PC",a:"Doesn’t help. The PC can’t reach HQ at all.",tag:"miss"}],
+  opts:["Site-to-site VPN Phase 2 mismatch after the HQ firmware upgrade","Store 01 ISP outage","The NAS is down","The user’s password expired"],ans:0,
+  hint:"It worked yesterday. What changed overnight, and why would only one store’s tunnel break?",
+  fix:["Match the Phase 2 encryption settings on both firewalls","Bring the tunnel up and confirm ping to 10.0.30.20","Have the store open the shared drive"],
+  prevent:["Add “check every VPN tunnel” to the upgrade test plan","Keep store firmware versions consistent","Alert when any tunnel is down for over 5 minutes"],
+  say:"It worked yesterday, so I asked what changed. The change log pointed to the upgrade, and only the store on old firmware broke."}
+];
+
+/* ---------- three.js setup ---------- */
+const canvas=$("#c"),stage=$("#stage"),labelLayer=$("#labels");
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0b111c);
+scene.fog=new THREE.Fog(0x0b111c,70,140);
+const camera=new THREE.PerspectiveCamera(45,1,0.1,400);
+camera.position.set(-3,30,40);
+const controls=new THREE.OrbitControls(camera,canvas);
+controls.target.set(-3,2,0);controls.enableDamping=true;controls.dampingFactor=0.08;
+controls.maxPolarAngle=Math.PI*0.48;controls.minDistance=5;controls.maxDistance=95;
+scene.add(new THREE.HemisphereLight(0xd6e2ff,0x18202e,0.85));
+const dl=new THREE.DirectionalLight(0xffffff,0.75);dl.position.set(-12,30,22);scene.add(dl);
+const grid=new THREE.GridHelper(140,70,0x1a2840,0x121c2c);grid.position.y=-0.32;scene.add(grid);
+
+const mat=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:0.6,metalness:0.12},o||{}));
+const BODY=0x2b3852,BODY2=0x3a4a68,SILVER=0xbac4d2,SCREEN=0x0f1726;
+function mesh(geo,m,x,y,z,g){const o=new THREE.Mesh(geo,m);o.position.set(x||0,y||0,z||0);if(g)g.add(o);return o;}
+const box=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
+const cylG=(a,b,h,s)=>new THREE.CylinderGeometry(a,b,h,s||16);
+
+/* platforms + zones */
+const zoneLabels=[];
+function zone(site,x0,z0,x1,z1,label,color){
+  const S=SITES[site];const w=x1-x0,d=z1-z0;
+  const p=mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.07,depthWrite:false}),S.x+x0+w/2,0.012,S.z+z0+d/2,scene);
+  p.rotation.x=-Math.PI/2;
+  const el=document.createElement("div");el.className="zone-lbl";el.textContent=label;labelLayer.appendChild(el);
+  zoneLabels.push({el,v:new THREE.Vector3(S.x+x0+0.35,0.05,S.z+z1-0.35)});
+}
+/* halo-lit signage: dark letters, glowing edges, warm light washing the wall behind */
+const SIGNS=[];
+const glowTex=(function(){const cv=document.createElement("canvas");cv.width=cv.height=256;const g=cv.getContext("2d");
+  const r=g.createRadialGradient(128,128,8,128,128,128);r.addColorStop(0,"rgba(255,226,186,1)");r.addColorStop(.45,"rgba(255,196,140,.45)");r.addColorStop(1,"rgba(255,170,110,0)");
+  g.fillStyle=r;g.fillRect(0,0,256,256);return new THREE.CanvasTexture(cv);})();
+function signTexture(text){
+  const cv=document.createElement("canvas");cv.width=1024;cv.height=224;const g=cv.getContext("2d");
+  const draw=()=>{g.clearRect(0,0,1024,224);g.font='600 118px "Chakra Petch","Rajdhani",ui-sans-serif,sans-serif';g.textAlign="center";g.textBaseline="middle";
+    try{g.letterSpacing="14px";}catch(e){}
+    g.shadowColor="rgba(255,214,160,1)";g.fillStyle="#ffe6c4";
+    [42,26,12].forEach(b=>{g.shadowBlur=b;g.fillText(text,512,118);});
+    g.shadowBlur=0;g.fillStyle="#141a24";g.fillText(text,512,118);
+    g.lineWidth=2.2;g.strokeStyle="rgba(255,236,210,.95)";g.strokeText(text,512,118);};
+  draw();const tex=new THREE.CanvasTexture(cv);
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{draw();tex.needsUpdate=true;});
+  return tex;
+}
+function makeSign(text,x,y,z,w){
+  const h=w*0.22,grp=new THREE.Group();grp.position.set(x,y,z);
+  mesh(box(w+1.4,h+1.1,0.22),mat(0x0f1724,{roughness:0.95}),0,0,-0.26,grp);
+  const wb=-(h+1.1)/2,ph=y+wb;[-1,1].forEach(sx=>mesh(cylG(0.06,0.06,ph),mat(0x2a3446),sx*(w/2+0.2),(-y+wb)/2,-0.26,grp));
+  const halo=mesh(new THREE.PlaneGeometry(w+2.2,h+2.4),new THREE.MeshBasicMaterial({map:glowTex,color:0xffcf9a,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0.85}),0,0,-0.13,grp);
+  mesh(new THREE.PlaneGeometry(w,w*224/1024),new THREE.MeshBasicMaterial({map:signTexture(text),transparent:true,depthWrite:false}),0,0,-0.06,grp);
+  const strip=mesh(box(w+1.2,0.05,0.05),new THREE.MeshBasicMaterial({color:0xffe2bd}),0,-(h+1.1)/2+0.12,-0.12,grp);
+  const light=new THREE.PointLight(0xffc68c,0.9,10,2);light.position.set(0,0,1.2);grp.add(light);
+  scene.add(grp);SIGNS.push({halo,light,ph:Math.random()*6});return grp;
+}
+
+const SIGN_FONT=new THREE.FontLoader().parse({"glyphs":{"S":{"x_min":0,"x_max":826,"ha":915,"o":"m 826 306 q 701 55 826 148 q 423 -29 587 -29 q 138 60 255 -29 q 0 318 13 154 l 208 318 q 288 192 216 238 q 437 152 352 152 q 559 181 506 152 q 623 282 623 217 q 466 411 623 372 q 176 487 197 478 q 18 719 18 557 q 136 958 18 869 q 399 1040 244 1040 q 670 956 561 1040 q 791 713 791 864 l 591 713 q 526 826 583 786 q 393 866 469 866 q 277 838 326 866 q 218 742 218 804 q 374 617 218 655 q 667 542 646 552 q 826 306 826 471 "},"J":{"x_min":0,"x_max":649,"ha":760,"o":"m 649 294 q 573 48 649 125 q 327 -29 497 -29 q 61 82 136 -29 q 0 375 0 173 l 200 375 l 199 309 q 219 194 199 230 q 321 145 249 145 q 418 193 390 145 q 441 307 441 232 l 441 1013 l 649 1013 l 649 294 "},"D":{"x_min":0,"x_max":864,"ha":968,"o":"m 400 1013 q 736 874 608 1013 q 864 523 864 735 q 717 146 864 293 q 340 0 570 0 l 0 0 l 0 1013 l 400 1013 m 398 837 l 206 837 l 206 182 l 372 182 q 584 276 507 182 q 657 504 657 365 q 594 727 657 632 q 398 837 522 837 "},"-":{"x_min":27.78125,"x_max":413.890625,"ha":525,"o":"m 413 279 l 27 279 l 27 468 l 413 468 l 413 279 "},"Q":{"x_min":0,"x_max":995.59375,"ha":1096,"o":"m 995 49 l 885 -70 l 762 42 q 641 -12 709 4 q 497 -29 572 -29 q 135 123 271 -29 q 0 504 0 276 q 131 881 0 731 q 497 1040 270 1040 q 859 883 719 1040 q 994 506 994 731 q 966 321 994 413 q 884 152 938 229 l 995 49 m 730 299 q 767 395 755 344 q 779 504 779 446 q 713 743 779 644 q 505 857 638 857 q 284 745 366 857 q 210 501 210 644 q 279 265 210 361 q 492 157 357 157 q 615 181 557 157 l 508 287 l 620 405 l 730 299 "},"M":{"x_min":0,"x_max":1019,"ha":1135,"o":"m 1019 0 l 823 0 l 823 819 l 618 0 l 402 0 l 194 818 l 194 0 l 0 0 l 0 1013 l 309 1012 l 510 241 l 707 1013 l 1019 1013 l 1019 0 "},"C":{"x_min":0,"x_max":970.828125,"ha":1043,"o":"m 970 345 q 802 70 933 169 q 490 -29 672 -29 q 130 130 268 -29 q 0 506 0 281 q 134 885 0 737 q 502 1040 275 1040 q 802 939 668 1040 q 965 679 936 838 l 745 679 q 649 809 716 761 q 495 857 582 857 q 283 747 361 857 q 214 508 214 648 q 282 267 214 367 q 493 154 359 154 q 651 204 584 154 q 752 345 718 255 l 970 345 "},"X":{"x_min":0,"x_max":894.453125,"ha":999,"o":"m 894 0 l 654 0 l 445 351 l 238 0 l 0 0 l 316 516 l 0 1013 l 238 1013 l 445 659 l 652 1013 l 894 1013 l 577 519 l 894 0 "},"N":{"x_min":0,"x_max":833,"ha":949,"o":"m 833 0 l 617 0 l 206 695 l 206 0 l 0 0 l 0 1013 l 216 1013 l 629 315 l 629 1013 l 833 1013 l 833 0 "},"2":{"x_min":64,"x_max":764,"ha":828,"o":"m 764 685 q 675 452 764 541 q 484 325 637 415 q 307 168 357 250 l 754 168 l 754 0 l 64 0 q 193 301 64 175 q 433 480 202 311 q 564 673 564 576 q 519 780 564 737 q 416 824 475 824 q 318 780 358 824 q 262 633 270 730 l 80 633 q 184 903 80 807 q 415 988 276 988 q 654 907 552 988 q 764 685 764 819 "},"Z":{"x_min":0,"x_max":804.171875,"ha":906,"o":"m 804 836 l 251 182 l 793 182 l 793 0 l 0 0 l 0 176 l 551 830 l 11 830 l 11 1013 l 804 1013 l 804 836 "},"B":{"x_min":0,"x_max":835,"ha":938,"o":"m 674 547 q 791 450 747 518 q 835 304 835 383 q 718 75 835 158 q 461 0 612 0 l 0 0 l 0 1013 l 477 1013 q 697 951 609 1013 q 797 754 797 880 q 765 630 797 686 q 674 547 734 575 m 438 621 q 538 646 495 621 q 590 730 590 676 q 537 814 590 785 q 436 838 494 838 l 199 838 l 199 621 l 438 621 m 445 182 q 561 211 513 182 q 618 311 618 247 q 565 410 618 375 q 444 446 512 446 l 199 446 l 199 182 l 445 182 "},"H":{"x_min":0,"x_max":838,"ha":953,"o":"m 838 0 l 628 0 l 628 450 l 210 450 l 210 0 l 0 0 l 0 1013 l 210 1013 l 210 635 l 628 635 l 628 1013 l 838 1013 l 838 0 "},"U":{"x_min":0,"x_max":813,"ha":926,"o":"m 813 362 q 697 79 813 187 q 405 -29 582 -29 q 114 78 229 -29 q 0 362 0 186 l 0 1013 l 210 1013 l 210 387 q 260 226 210 291 q 408 154 315 154 q 554 226 500 154 q 603 387 603 291 l 603 1013 l 813 1013 l 813 362 "},"F":{"x_min":0,"x_max":706.953125,"ha":778,"o":"m 706 837 l 206 837 l 206 606 l 645 606 l 645 431 l 206 431 l 206 0 l 0 0 l 0 1013 l 706 1013 l 706 837 "},"V":{"x_min":0,"x_max":895.828125,"ha":997,"o":"m 895 1013 l 550 0 l 347 0 l 0 1013 l 231 1013 l 447 256 l 666 1013 l 895 1013 "},"0":{"x_min":51,"x_max":779,"ha":828,"o":"m 415 -26 q 142 129 242 -26 q 51 476 51 271 q 141 825 51 683 q 415 984 242 984 q 687 825 585 984 q 779 476 779 682 q 688 131 779 271 q 415 -26 587 -26 m 415 137 q 529 242 485 137 q 568 477 568 338 q 530 713 568 619 q 415 821 488 821 q 303 718 344 821 q 262 477 262 616 q 301 237 262 337 q 415 137 341 137 "},"8":{"x_min":57,"x_max":770,"ha":828,"o":"m 625 516 q 733 416 697 477 q 770 284 770 355 q 675 69 770 161 q 415 -29 574 -29 q 145 65 244 -29 q 57 273 57 150 q 93 413 57 350 q 204 516 130 477 q 112 609 142 556 q 83 718 83 662 q 177 905 83 824 q 414 986 272 986 q 650 904 555 986 q 745 715 745 822 q 716 608 745 658 q 625 516 688 558 m 414 590 q 516 624 479 590 q 553 706 553 659 q 516 791 553 755 q 414 828 480 828 q 311 792 348 828 q 275 706 275 757 q 310 624 275 658 q 414 590 345 590 m 413 135 q 527 179 487 135 q 564 279 564 218 q 525 386 564 341 q 411 436 482 436 q 298 387 341 436 q 261 282 261 344 q 300 178 261 222 q 413 135 340 135 "},"R":{"x_min":0,"x_max":836.109375,"ha":947,"o":"m 836 0 l 608 0 q 588 53 596 20 q 581 144 581 86 q 581 179 581 162 q 581 215 581 197 q 553 345 581 306 q 428 393 518 393 l 208 393 l 208 0 l 0 0 l 0 1013 l 491 1013 q 720 944 630 1013 q 819 734 819 869 q 778 584 819 654 q 664 485 738 513 q 757 415 727 463 q 794 231 794 358 l 794 170 q 800 84 794 116 q 836 31 806 51 l 836 0 m 462 838 l 208 838 l 208 572 l 452 572 q 562 604 517 572 q 612 704 612 640 q 568 801 612 765 q 462 838 525 838 "},"5":{"x_min":59,"x_max":767,"ha":828,"o":"m 767 319 q 644 59 767 158 q 382 -29 533 -29 q 158 43 247 -29 q 59 264 59 123 l 252 264 q 295 165 252 201 q 400 129 339 129 q 512 172 466 129 q 564 308 564 220 q 514 437 564 387 q 398 488 464 488 q 329 472 361 488 q 271 420 297 456 l 93 428 l 157 958 l 722 958 l 722 790 l 295 790 l 271 593 q 348 635 306 621 q 431 649 389 649 q 663 551 560 649 q 767 319 767 453 "},"7":{"x_min":65.28125,"x_max":762.5,"ha":828,"o":"m 762 808 q 521 435 604 626 q 409 0 438 244 l 205 0 q 313 422 227 234 q 548 789 387 583 l 65 789 l 65 958 l 762 958 l 762 808 "},"K":{"x_min":0,"x_max":900,"ha":996,"o":"m 900 0 l 647 0 l 316 462 l 208 355 l 208 0 l 0 0 l 0 1013 l 208 1013 l 208 595 l 604 1013 l 863 1013 l 461 603 l 900 0 "},"E":{"x_min":0,"x_max":761.109375,"ha":824,"o":"m 761 0 l 0 0 l 0 1013 l 734 1013 l 734 837 l 206 837 l 206 621 l 690 621 l 690 446 l 206 446 l 206 186 l 761 186 l 761 0 "},"Y":{"x_min":0,"x_max":836,"ha":931,"o":"m 836 1013 l 532 376 l 532 0 l 322 0 l 322 376 l 0 1013 l 208 1013 l 427 576 l 626 1013 l 836 1013 "},"L":{"x_min":0,"x_max":704.171875,"ha":763,"o":"m 704 0 l 0 0 l 0 1013 l 208 1013 l 208 186 l 704 186 l 704 0 "}," ":{"x_min":0,"x_max":0,"ha":375},"P":{"x_min":0,"x_max":771,"ha":838,"o":"m 208 361 l 208 0 l 0 0 l 0 1013 l 450 1013 q 682 919 593 1013 q 771 682 771 826 q 687 452 771 544 q 466 361 604 361 l 208 361 m 421 837 l 208 837 l 208 544 l 410 544 q 525 579 480 544 q 571 683 571 615 q 527 792 571 747 q 421 837 484 837 "},"T":{"x_min":0,"x_max":809,"ha":894,"o":"m 809 831 l 509 831 l 509 0 l 299 0 l 299 831 l 0 831 l 0 1013 l 809 1013 l 809 831 "},"1":{"x_min":197.609375,"x_max":628,"ha":828,"o":"m 628 0 l 434 0 l 434 674 l 197 674 l 197 810 q 373 837 318 810 q 468 984 450 876 l 628 984 l 628 0 "},"W":{"x_min":0,"x_max":1291.671875,"ha":1399,"o":"m 1291 1013 l 1002 0 l 802 0 l 645 777 l 490 0 l 288 0 l 0 1013 l 215 1013 l 388 298 l 534 1012 l 757 1013 l 904 299 l 1076 1013 l 1291 1013 "},"I":{"x_min":41,"x_max":249,"ha":365,"o":"m 249 0 l 41 0 l 41 1013 l 249 1013 l 249 0 "},"G":{"x_min":0,"x_max":971,"ha":1057,"o":"m 971 -1 l 829 -1 l 805 118 q 479 -29 670 -29 q 126 133 261 -29 q 0 509 0 286 q 130 884 0 737 q 493 1040 268 1040 q 790 948 659 1040 q 961 698 920 857 l 736 698 q 643 813 709 769 q 500 857 578 857 q 285 746 364 857 q 213 504 213 644 q 285 263 213 361 q 505 154 365 154 q 667 217 598 154 q 761 374 736 280 l 548 374 l 548 548 l 971 548 l 971 -1 "},"\u00b7":{"x_min":0,"x_max":207,"ha":304,"o":"m 207 528 l 0 528 l 0 735 l 207 735 l 207 528 "},"A":{"x_min":0,"x_max":966.671875,"ha":1069,"o":"m 966 0 l 747 0 l 679 208 l 286 208 l 218 0 l 0 0 l 361 1013 l 600 1013 l 966 0 m 623 376 l 480 810 l 340 376 l 623 376 "},"6":{"x_min":57,"x_max":771,"ha":828,"o":"m 744 734 l 544 734 q 500 802 533 776 q 425 828 466 828 q 315 769 359 828 q 264 571 264 701 q 451 638 343 638 q 691 537 602 638 q 771 315 771 449 q 683 79 771 176 q 420 -29 586 -29 q 134 123 227 -29 q 57 455 57 250 q 184 865 57 721 q 452 988 293 988 q 657 916 570 988 q 744 734 744 845 m 426 128 q 538 178 498 128 q 578 300 578 229 q 538 422 578 372 q 415 479 493 479 q 303 430 342 479 q 264 313 264 381 q 308 184 264 240 q 426 128 352 128 "},"O":{"x_min":0,"x_max":994,"ha":1094,"o":"m 497 -29 q 133 127 272 -29 q 0 505 0 277 q 131 883 0 733 q 497 1040 270 1040 q 860 883 721 1040 q 994 505 994 733 q 862 127 994 277 q 497 -29 723 -29 m 497 154 q 710 266 631 154 q 780 506 780 365 q 710 745 780 647 q 497 857 631 857 q 283 747 361 857 q 213 506 213 647 q 282 266 213 365 q 497 154 361 154 "},"3":{"x_min":61,"x_max":767,"ha":828,"o":"m 767 290 q 653 51 767 143 q 402 -32 548 -32 q 168 48 262 -32 q 61 300 61 140 l 250 300 q 298 173 250 219 q 405 132 343 132 q 514 169 471 132 q 563 282 563 211 q 491 405 563 369 q 343 432 439 432 l 343 568 q 472 592 425 568 q 534 701 534 626 q 493 793 534 758 q 398 829 453 829 q 306 789 344 829 q 268 669 268 749 l 80 669 q 182 909 80 823 q 410 986 274 986 q 633 916 540 986 q 735 719 735 840 q 703 608 735 656 q 615 522 672 561 q 727 427 687 486 q 767 290 767 369 "},"9":{"x_min":58,"x_max":769,"ha":828,"o":"m 769 492 q 646 90 769 232 q 384 -33 539 -33 q 187 35 271 -33 q 83 224 98 107 l 282 224 q 323 154 286 182 q 404 127 359 127 q 513 182 471 127 q 563 384 563 248 q 475 335 532 355 q 372 315 418 315 q 137 416 224 315 q 58 642 58 507 q 144 877 58 781 q 407 984 239 984 q 694 827 602 984 q 769 492 769 699 m 416 476 q 525 521 488 476 q 563 632 563 566 q 521 764 563 709 q 403 826 474 826 q 297 773 337 826 q 258 649 258 720 q 295 530 258 577 q 416 476 339 476 "},"4":{"x_min":53,"x_max":775.21875,"ha":828,"o":"m 775 213 l 660 213 l 660 0 l 470 0 l 470 213 l 53 213 l 53 384 l 416 958 l 660 958 l 660 370 l 775 370 l 775 213 m 474 364 l 474 786 l 204 363 l 474 364 "}},"cssFontWeight":"bold","ascender":1216,"underlinePosition":-100,"cssFontStyle":"normal","boundingBox":{"yMin":-333,"xMin":-162,"yMax":1216,"xMax":1681},"resolution":1000,"original_font_information":{"postscript_name":"Helvetiker-Bold","version_string":"Version 1.00 2004 initial release","vendor_url":"http://www.magenta.gr","full_font_name":"Helvetiker Bold","font_family_name":"Helvetiker","copyright":"Copyright (c) Magenta ltd, 2004.","description":"","trademark":"","designer":"","designer_url":"","unique_font_identifier":"Magenta ltd:Helvetiker Bold:22-10-104","license_url":"http://www.ellak.gr/fonts/MgOpen/license.html","license_description":"Copyright (c) 2004 by MAGENTA Ltd. All Rights Reserved.\r\n\r\nPermission is hereby granted, free of charge, to any person obtaining a copy of the fonts accompanying this license (\"Fonts\") and associated documentation files (the \"Font Software\"), to reproduce and distribute the Font Software, including without limitation the rights to use, copy, merge, publish, distribute, and/or sell copies of the Font Software, and to permit persons to whom the Font Software is furnished to do so, subject to the following conditions: \r\n\r\nThe above copyright and this permission notice shall be included in all copies of one or more of the Font Software typefaces.\r\n\r\nThe Font Software may be modified, altered, or added to, and in particular the designs of glyphs or characters in the Fonts may be modified and additional glyphs or characters may be added to the Fonts, only if the fonts are renamed to names not containing the word \"MgOpen\", or if the modifications are accepted for inclusion in the Font Software itself by the each appointed Administrator.\r\n\r\nThis License becomes null and void to the extent applicable to Fonts or Font Software that has been modified and is distributed under the \"MgOpen\" name.\r\n\r\nThe Font Software may be sold as part of a larger software package but no copy of one or more of the Font Software typefaces may be sold by itself. \r\n\r\nTHE FONT SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL MAGENTA OR PERSONS OR BODIES IN CHARGE OF ADMINISTRATION AND MAINTENANCE OF THE FONT SOFTWARE BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM OTHER DEALINGS IN THE FONT SOFTWARE.","manufacturer_name":"Magenta ltd","font_sub_family_name":"Bold"},"descender":-334,"familyName":"Helvetiker","lineHeight":1549,"underlineThickness":50});
+const whiteGlowTex=(function(){const cv=document.createElement("canvas");cv.width=cv.height=256;const g=cv.getContext("2d");
+  const r=g.createRadialGradient(128,128,6,128,128,128);r.addColorStop(0,"rgba(255,255,255,.75)");r.addColorStop(.5,"rgba(220,235,255,.22)");r.addColorStop(1,"rgba(220,235,255,0)");
+  g.fillStyle=r;g.fillRect(0,0,256,256);return new THREE.CanvasTexture(cv);})();
+const letterFront=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xdfe9f7,emissiveIntensity:0.42,roughness:0.3,metalness:0.15});
+const letterSide=new THREE.MeshStandardMaterial({color:0x9fb0c6,emissive:0x3d4d63,emissiveIntensity:0.35,roughness:0.45,metalness:0.35});
+function glowPlane(drawFn,w,h){
+  const cv=document.createElement("canvas");cv.width=1024;cv.height=Math.max(64,Math.round(1024*h/w));const g=cv.getContext("2d");
+  const tex=new THREE.CanvasTexture(cv);const redraw=()=>{g.clearRect(0,0,cv.width,cv.height);drawFn(g,cv.width,cv.height);tex.needsUpdate=true;};redraw();
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0.95}));
+  m.userData.redraw=redraw;return m;
+}
+function floatSign(grp,y,w,h){
+  const halo=mesh(new THREE.PlaneGeometry(w*1.5,h*3.2),new THREE.MeshBasicMaterial({map:whiteGlowTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0.4}),0,0,-0.35,grp);
+  const light=new THREE.PointLight(0xe8f1ff,0.8,11,2);light.position.set(0,0,1.2);grp.add(light);
+  scene.add(grp);SIGNS.push({grp,baseY:y,halo,light,ph:Math.random()*6});return grp;
+}
+function make3DText(text,x,y,z,size){
+  const grp=new THREE.Group();grp.position.set(x,y,z);
+  const geo=new THREE.TextGeometry(text,{font:SIGN_FONT,size,height:size*0.32,curveSegments:5,bevelEnabled:true,bevelThickness:size*0.05,bevelSize:size*0.035,bevelSegments:3});
+  geo.computeBoundingBox();const bb=geo.boundingBox;geo.translate(-(bb.max.x+bb.min.x)/2,-(bb.max.y+bb.min.y)/2,-(bb.max.z+bb.min.z)/2);
+  grp.add(new THREE.Mesh(geo,[letterFront,letterSide]));
+  const w=bb.max.x-bb.min.x,h=bb.max.y-bb.min.y;
+  const glow=glowPlane((g,W,H)=>{g.font=`bold ${Math.round(H*0.62)}px Helvetica, Arial, sans-serif`;g.textAlign="center";g.textBaseline="middle";
+    g.shadowColor="rgba(235,244,255,.85)";g.fillStyle="#fff";g.shadowOffsetX=W*4;[56,30].forEach(b=>{g.shadowBlur=b;g.fillText(text,W/2-W*4,H/2+H*0.04);});},w*1.25,h*2.2);
+  glow.position.z=-0.12;grp.add(glow);
+  return floatSign(grp,y,w,h);
+}
+function make3DLogo(x,y,z,w){
+  const h=w*LOGO_ASPECT,grp=new THREE.Group();grp.position.set(x,y,z);
+  const W=1024,H=Math.round(W*LOGO_ASPECT);
+  const silCv=document.createElement("canvas");silCv.width=W;silCv.height=H;const sg=silCv.getContext("2d");const silTex=new THREE.CanvasTexture(silCv);
+  const LAYERS=18,DEPTH=w*0.07;
+  for(let i=0;i<LAYERS;i++){const t=i/(LAYERS-1);
+    const m=new THREE.MeshBasicMaterial({map:silTex,alphaTest:0.5,transparent:false,side:THREE.DoubleSide,color:i===LAYERS-1?0xffffff:new THREE.Color().setHSL(0.6,0.12,0.62+0.22*t)});
+    mesh(new THREE.PlaneGeometry(w,h),m,0,0,-DEPTH+DEPTH*t,grp);}
+  const glow=glowPlane(()=>{},w*1.2,h*1.6);glow.position.z=-DEPTH-0.08;grp.add(glow);
+  const img=new Image();img.onload=()=>{
+    sg.clearRect(0,0,W,H);sg.drawImage(img,0,0,W,H);sg.globalCompositeOperation="source-in";sg.fillStyle="#fff";sg.fillRect(0,0,W,H);sg.globalCompositeOperation="source-over";silTex.needsUpdate=true;
+    const gc=glow.material.map.image,gg=gc.getContext("2d");gg.clearRect(0,0,gc.width,gc.height);
+    const ox=gc.width*(1-1/1.2)/2,oy=gc.height*(1-1/1.6)/2,dw=gc.width/1.2,dh=gc.height/1.6;
+    gg.shadowColor="rgba(235,244,255,.85)";gg.shadowOffsetX=gc.width*4;[60,30].forEach(b=>{gg.shadowBlur=b;gg.drawImage(silCv,ox-gc.width*4,oy,dw,dh);});gg.shadowOffsetX=0;glow.material.map.needsUpdate=true;};
+  img.src=LOGO_LIGHT;
+  return floatSign(grp,y,w,h);
+}
+
+const siteLabels=[];
+const deskM=mat(0x2a303d);
+const GROW=[];
+function buildSite(id,grow){
+  const S=SITES[id];const objs=[];
+  const plat=mesh(box(S.w,0.3,S.d),mat(0x162033,{roughness:0.9}),S.x,-0.15,S.z,scene);objs.push(plat);
+  const edges=new THREE.LineSegments(new THREE.EdgesGeometry(plat.geometry),new THREE.LineBasicMaterial({color:0x33476a}));
+  edges.position.copy(plat.position);scene.add(edges);objs.push(edges);
+  const el=document.createElement("div");el.className="site-lbl";el.innerHTML=id==="hq"?`${S.name}<small>${S.sub}</small>`:`<small>${S.sub}</small>`;labelLayer.appendChild(el);
+  siteLabels.push({el,v:new THREE.Vector3(S.x,0,S.z+S.d/2+0.6)});
+  if(id==="hq"){
+    objs.push(make3DLogo(S.x,5.6,S.z-S.d/2-0.4,6));
+  }else{
+    zone(id,-5.5,-4.3,5.5,-0.2,"Back room",0x8fb4ff);zone(id,-5.5,-0.2,5.5,4.3,"Sales floor",0xf5c542);
+    objs.push(mesh(box(3.6,0.95,0.85),mat(0x3b3343),S.x-1.3,0.475,S.z+2.62,scene));
+    objs.push(mesh(box(1.4,0.74,0.7),deskM,S.x+3.7,0.37,S.z-2.7,scene));
+    objs.push(mesh(box(1.2,0.74,0.7),deskM,S.x+2.2,0.37,S.z-2.7,scene));
+    objs.push(make3DText(S.name.toUpperCase(),S.x,3.4,S.z-S.d/2-0.3,0.62));
+  }
+  if(grow)objs.forEach((o,i)=>{o.scale.set(1,0.001,1);GROW.push({o,at:clockNow()+i*0.05,dur:0.7});});
+}
+zone("hq",-10.5,-7.75,10.5,-1.3,"Comms room",0x8fb4ff);
+zone("hq",-10.5,-1.3,3.6,7.75,"Open office",0x5b9dff);
+zone("hq",3.6,-1.3,10.5,7.75,"Boardroom",0xff8a65);
+let _clock=0;function clockNow(){return _clock;}
+Object.keys(SITES).forEach(id=>buildSite(id,false));
+// furniture
+(function(){const S=SITES.hq;mesh(box(2.8,0.74,1.5),deskM,S.x+6.2,0.37,S.z+4,scene);mesh(box(1,0.74,0.55),deskM,S.x+9,0.37,S.z+3,scene);
+ [["hq-pc1"],["hq-pc2"],["hq-mac1"],["hq-mac2"]].forEach(([id])=>{const n=NMAP[id];mesh(box(1.6,0.06,0.9),deskM,S.x+n.rx,0.74,S.z+n.rz,scene);mesh(box(1.5,0.7,0.05),deskM,S.x+n.rx,0.36,S.z+n.rz-0.42,scene);});})();
+
+/* device builders */
+function build(n){
+  const g=new THREE.Group();let top=1.3,port=1.0,led=null,screen=null;
+  const stand=(h,w,d)=>mesh(box(w||0.5,h,d||0.4),mat(0x1d2738),0,h/2,0,g);
+  switch(n.type){
+   case "modem":stand(0.9);mesh(box(0.7,0.22,0.5),mat(BODY2),0,1.01,0,g);led=[0.24,1.13,0.26];top=1.35;break;
+   case "lte":stand(0.9);mesh(box(0.6,0.2,0.45),mat(BODY2),0,1.0,0,g);[-0.2,0.2].forEach(x=>mesh(cylG(0.025,0.025,0.55),mat(0x8a96aa),x,1.37,-0.15,g));led=[0.2,1.11,0.23];top=1.75;break;
+   case "firewall":stand(0.9,0.7,0.5);mesh(box(1.3,0.28,0.75),mat(BODY),0,1.04,0,g);mesh(box(1.3,0.07,0.02),mat(0xd9484f,{emissive:0x3a0d10}),0,1.1,0.385,g);led=[0.52,1.19,0.3];top=1.5;port=1.04;break;
+   case "switch":case "l3switch":stand(0.9,0.8,0.5);mesh(box(1.7,0.2,0.65),mat(n.type==="l3switch"?0x34507a:BODY),0,1.0,0,g);for(let i=0;i<8;i++)mesh(box(0.13,0.07,0.02),mat(0x0a0f18),-0.6+i*0.15,1.0,0.33,g);led=[0.72,1.11,0.25];top=1.4;break;
+   case "minisw":mesh(box(0.45,0.12,0.3),mat(BODY2),0,0.06,0.2,g);led=[0.15,0.13,0.36];top=0.6;port=0.1;break;
+   case "server":mesh(box(0.8,1.5,0.85),mat(BODY),0,0.75,0,g);for(let i=0;i<4;i++)mesh(box(0.62,0.04,0.02),mat(0x55688a),0,0.4+i*0.24,0.43,g);led=[0.28,1.38,0.43];top=1.9;port=0.9;break;
+   case "nas":stand(0.5,0.6,0.5);mesh(box(0.75,0.6,0.7),mat(BODY2),0,0.8,0,g);for(let i=0;i<4;i++)mesh(box(0.14,0.45,0.02),mat(0x1a2333),-0.25+i*0.17,0.8,0.36,g);led=[0.3,1.05,0.36];top=1.4;port=0.8;break;
+   case "ap":mesh(cylG(0.025,0.025,2.5),mat(0x3a475e),0,1.25,0,g);mesh(cylG(0.38,0.38,0.08,32),mat(0xe9eef5),0,2.55,0,g);led=[0,2.5,0.3];top=3.0;port=2.55;break;
+   case "pc":mesh(box(0.9,0.55,0.05),mat(0x1b2333),0,1.15,-0.12,g);screen=mesh(box(0.82,0.47,0.01),mat(SCREEN,{emissive:0x1d3a66,emissiveIntensity:0.7}),0,1.15,-0.09,g);mesh(box(0.08,0.25,0.08),mat(0x1b2333),0,0.88,-0.15,g);mesh(box(0.25,0.5,0.5),mat(BODY2),0.62,1.02,0,g);led=[0.62,1.22,0.26];top=1.65;port=0.85;break;
+   case "mac":mesh(box(0.75,0.035,0.52),mat(SILVER,{metalness:0.55}),0,0.8,0.05,g);const sc=mesh(box(0.75,0.5,0.025),mat(SILVER,{metalness:0.55}),0,1.04,-0.21,g);sc.rotation.x=-0.22;screen=mesh(box(0.68,0.43,0.005),mat(SCREEN,{emissive:0x1d3a66,emissiveIntensity:0.7}),0,1.04,-0.195,g);screen.rotation.x=-0.22;led=[0.3,0.83,0.3];top=1.55;port=0.9;break;
+   case "printer":mesh(box(0.8,0.55,0.65),mat(0xc9d1dc),0,0.275,0,g);mesh(box(0.6,0.05,0.3),mat(0x8a96aa),0,0.58,0.1,g);led=[0.3,0.5,0.33];top=1.0;port=0.45;break;
+   case "avpc":mesh(box(0.35,0.12,0.35),mat(BODY2),0,0.8,0,g);led=[0.12,0.87,0.18];top=1.2;port=0.8;break;
+   case "display":mesh(box(0.15,1.0,0.15),mat(0x1b2333),0,0.5,0,g);mesh(box(2.4,1.4,0.08),mat(0x10151f),0,1.7,0,g);screen=mesh(box(2.3,1.3,0.01),mat(SCREEN,{emissive:0x2a5aa8,emissiveIntensity:0.75}),0,1.7,-0.045,g);led=[1.1,1.05,-0.05];top=2.7;port=1.0;break;
+   case "avbar":mesh(box(1.0,0.12,0.14),mat(0x1b2333),0,2.5,0,g);const lens=mesh(cylG(0.05,0.05,0.03),mat(0x050608),0,2.5,-0.08,g);lens.rotation.x=Math.PI/2;led=[0.4,2.5,-0.08];top=2.95;port=2.5;break;
+   case "pos":mesh(cylG(0.04,0.06,0.25),mat(0x8a96aa),0,1.07,0,g);const ip=mesh(box(0.55,0.4,0.035),mat(0x1b2333),0,1.35,0,g);ip.rotation.x=-0.5;screen=mesh(box(0.5,0.35,0.005),mat(SCREEN,{emissive:0x5a4a12,emissiveIntensity:0.8}),0,1.36,0.02,g);screen.rotation.x=-0.5;led=[0.22,1.2,0.12];top=1.85;port=1.1;break;
+   case "reader":mesh(box(0.18,0.06,0.3),mat(0x222a38),0,0.98,0,g);led=[0,1.02,0.1];top=1.4;port=1.0;break;
+   case "camera":mesh(cylG(0.03,0.03,2.3),mat(0x3a475e),0,1.15,0,g);const cb=mesh(cylG(0.12,0.14,0.4),mat(0xe9eef5),0,2.35,-0.1,g);cb.rotation.x=Math.PI/2.4;led=[0,2.47,0];top=2.9;port=2.3;break;
+   case "phone":mesh(box(0.16,0.32,0.02),mat(0x111827),0,1.3,0,g);screen=mesh(box(0.14,0.28,0.005),mat(SCREEN,{emissive:0x4a3a7a,emissiveIntensity:0.8}),0,1.3,0.012,g);led=[0,1.48,0.02];top=1.8;port=1.3;break;
+   case "cloud":mesh(new THREE.SphereGeometry(1.15,32,20),mat(0x1c3a66,{emissive:0x12305e,emissiveIntensity:0.7}),0,0,0,g);mesh(new THREE.IcosahedronGeometry(1.75,1),new THREE.MeshBasicMaterial({color:0x6f8fc4,wireframe:true,transparent:true,opacity:0.35}),0,0,0,g);top=2.1;port=0;break;
+   case "service":mesh(new THREE.OctahedronGeometry(0.7),mat(n.col,{emissive:n.col,emissiveIntensity:0.25}),0,0,0,g);top=1.2;port=0;break;
+  }
+  return {g,top,port,led,screen};
+}
+
+/* place nodes */
+const pickables=[];
+function buildNode(n){
+  const b=build(n);const S=n.site?SITES[n.site]:null;
+  n.pos=S?new THREE.Vector3(S.x+n.rx,0,S.z+n.rz):new THREE.Vector3(n.rx,n.y,n.rz);
+  b.g.position.copy(n.pos);if(n.type==="display"||n.type==="avbar"){b.g.rotation.y=0;}
+  scene.add(b.g);
+  n.g=b.g;n.top=b.top;n.port=n.pos.clone().add(new THREE.Vector3(0,b.port,0));n.screen=b.screen;
+  n.mats=[];b.g.traverse(o=>{if(o.isMesh&&o.material&&o.material.isMeshStandardMaterial){n.mats.push(o.material);o.material.userData.e0=o.material.emissive.getHex();o.material.userData.ei0=o.material.emissiveIntensity;}o.userData.node=n.id;pickables.push(o);});
+  if(b.led){n.led=mesh(new THREE.SphereGeometry(0.045,10,8),new THREE.MeshBasicMaterial({color:C.ok}),b.led[0],b.led[1],b.led[2],b.g);}
+  const r=n.type==="cloud"?2.4:n.type==="service"?1.15:0.85;
+  const halo=mesh(new THREE.RingGeometry(r,r+0.12,48),new THREE.MeshBasicMaterial({color:C.accent,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}),0,n.site?0.03:-0.2,0,b.g);
+  halo.rotation.x=-Math.PI/2;n.halo=halo;
+  const el=document.createElement("div");el.className="lbl"+(n.site?"":" cloud");el.textContent=n.name;el.hidden=true;labelLayer.appendChild(el);n.el=el;
+}
+NODES.forEach(buildNode);
+
+/* links */
+function curveFor(l){
+  const A=NMAP[l.a],B=NMAP[l.b];const a=A.port.clone(),b=B.port.clone();const m=a.clone().add(b).multiplyScalar(0.5);const d=a.distanceTo(b);
+  if(l.kind==="vpn"){m.y=Math.max(a.y,b.y)+d*0.22+2.5;}
+  else if(l.kind==="wan"||l.kind==="cell"){m.y=Math.max(a.y,b.y)+d*0.1;}
+  else{m.y=Math.max(a.y,b.y)+Math.min(0.7,d*0.09);}
+  return new THREE.QuadraticBezierCurve3(a,m,b);
+}
+function linkColor(l){if(l.kind==="wan")return C.wan;if(l.kind==="trunk")return C.trunk;if(l.kind==="vpn")return C.vpn;if(l.kind==="bt")return C.bt;if(l.kind==="cell")return C.wan;return C[l.vlan]||C.trunk;}
+const DASHED={wifi:1,bt:1,vpn:1,cell:1};
+function buildLink(l){
+  l.curve=curveFor(l);l.len=l.curve.getLength();l.color=linkColor(l);
+  if(DASHED[l.kind]){
+    const geo=new THREE.BufferGeometry().setFromPoints(l.curve.getPoints(Math.max(24,Math.round(l.len*3))));
+    l.mat=new THREE.LineDashedMaterial({color:l.color,dashSize:l.kind==="vpn"?0.5:0.22,gapSize:l.kind==="vpn"?0.35:0.16,transparent:true,opacity:l.kind==="vpn"?0.55:0.75});
+    l.obj=new THREE.Line(geo,l.mat);l.obj.computeLineDistances();
+  }else{
+    const r=l.kind==="wan"?0.06:l.kind==="trunk"?0.05:(l.kind==="hdmi"||l.kind==="usb")?0.025:0.035;
+    l.mat=new THREE.MeshBasicMaterial({color:l.color,transparent:true,opacity:0.85});
+    l.obj=new THREE.Mesh(new THREE.TubeGeometry(l.curve,Math.max(12,Math.round(l.len*3)),r,6,false),l.mat);
+  }
+  l.base=l.mat.opacity;scene.add(l.obj);
+}
+LINKS.forEach(buildLink);
+let loopObj=null,loopCurve=null;
+(function(){const a=NMAP["hq-asw1"].port.clone().add(new THREE.Vector3(0.2,0,0.1)),b=NMAP["hq-desksw"].port.clone().add(new THREE.Vector3(0.15,0,0));
+ const m=a.clone().add(b).multiplyScalar(0.5);m.x+=1.6;m.y+=1.2;loopCurve=new THREE.QuadraticBezierCurve3(a,m,b);
+ loopObj=new THREE.Mesh(new THREE.TubeGeometry(loopCurve,30,0.04,6,false),new THREE.MeshBasicMaterial({color:C.down}));loopObj.visible=false;scene.add(loopObj);})();
+
+/* ---------- state ---------- */
+const nodeStatus={};const linkStatus={};
+NODES.forEach(n=>nodeStatus[n.id]="ok");
+let selected=null,hovered=null,selFlow=null,storeSel="s1",showAll=false,ambient=!REDUCED;
+let scen=null,scenState=null,focusSet=null;
+let done={};try{done=JSON.parse(localStorage.getItem("rnlab-done")||"{}")||{};}catch(e){done={};}
+
+function applyStatusVisuals(){
+  NODES.forEach(n=>{
+    const st=nodeStatus[n.id];
+    n.mats.forEach(m=>{if(st==="down"){m.emissive.setHex(0x5a0d16);m.emissiveIntensity=1;}else if(st==="warn"||st==="storm"){m.emissive.setHex(0x4a2a05);m.emissiveIntensity=1;}else{m.emissive.setHex(m.userData.e0);m.emissiveIntensity=m.userData.ei0;}});
+    if(n.led)n.led.material.color.setHex(st==="ok"?C.ok:st==="down"?C.down:C.warn);
+    if(n.screen){const off=(n.id==="hq-display"&&linkStatus[key("hq-avpc","hq-display")]==="down")||st==="down";n.screen.material.emissiveIntensity=off?0.05:(n.screen.material.userData.ei0||0.7);}
+  });
+  LINKS.forEach(l=>{const dn=linkStatus[l.k]==="down";l.mat.color.setHex(dn?C.down:l.color);});
+  loopObj.visible=!!(scen&&scen.apply.loop&&!scenState.fixed);
+  renderHealth();
+}
+function renderHealth(){
+  const h=$("#health");h.innerHTML="";
+  const stores=Object.keys(SITES).filter(k=>k!=="hq");
+  const up=stores.filter(k=>!NODES.some(n=>n.site===k&&nodeStatus[n.id]==="down"&&n.type!=="mac")).length;
+  const devs=NODES.filter(n=>n.site&&n.type!=="phone").length;
+  const k1=document.createElement("span");k1.className="chip kpi";k1.textContent=`Stores online ${up}/${stores.length}`;h.appendChild(k1);
+  const k2=document.createElement("span");k2.className="chip kpi";k2.textContent=`${devs} managed devices`;h.appendChild(k2);
+  Object.entries(SITES).forEach(([id,S])=>{
+    let bad=0,warn=0;
+    NODES.forEach(n=>{if(n.site===id){if(nodeStatus[n.id]==="down")bad++;else if(nodeStatus[n.id]!=="ok")warn++;}});
+    LINKS.forEach(l=>{if(linkStatus[l.k]==="down"&&(NMAP[l.a].site===id||NMAP[l.b].site===id))warn++;});
+    if(id==="s2"&&nodeStatus["s2-modem"]==="down"&&nodeStatus["s2-lte"]==="ok"){bad=0;warn=Math.max(warn,1);}
+    const c=document.createElement("span");c.className="chip"+(bad?" down":warn?" warn":"");c.innerHTML=`<i></i>${S.name}`;h.appendChild(c);
+  });
+  let cb=["shopify","pay","m365","dns"].some(id=>nodeStatus[id]!=="ok");
+  const c=document.createElement("span");c.className="chip"+(cb?" down":"");c.innerHTML="<i></i>Cloud";h.appendChild(c);
+}
+
+/* ---------- packets ---------- */
+const packets=[];const pGeo=new THREE.SphereGeometry(0.11,10,8);
+function linkOf(a,b){return LMAP[key(a,b)];}
+function resolve(ids){return ids.map(id=>{const m=/^(s\d)-modem$/.exec(id);if(m&&nodeStatus[id]==="down"&&nodeStatus[m[1]+"-lte"]==="ok")return m[1]+"-lte";return id;});}
+function spawn(ids,color,opts){
+  opts=opts||{};if(packets.length>420)return;
+  const r=resolve(ids);const segs=[];
+  for(let i=0;i<r.length-1;i++){const l=linkOf(r[i],r[i+1]);if(!l)return;segs.push({l,from:r[i],to:r[i+1]});}
+  const m=new THREE.Mesh(pGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:1}));scene.add(m);
+  const p={segs,i:0,t:0,m,rt:!!opts.rt,back:false,speed:opts.speed||7,checked:false,stopAt:null,dying:0,dead:false};
+  placePacket(p);packets.push(p);
+}
+function placePacket(p){const s=p.segs[p.i];const tt=s.from===s.l.a?p.t:1-p.t;p.m.position.copy(s.l.curve.getPoint(Math.min(1,Math.max(0,tt))));}
+function killPacket(p,fail){p.dying=0.0001;p.fail=fail;if(fail){p.m.material.color.setHex(C.down);}}
+const stormPk=[];
+function spawnStorm(){
+  const m=new THREE.Mesh(pGeo,new THREE.MeshBasicMaterial({color:C.down,transparent:true}));scene.add(m);
+  stormPk.push({m,t:Math.random(),leg:Math.random()<0.5?0:1,life:0});
+}
+function updatePackets(dt){
+  for(let k=packets.length-1;k>=0;k--){
+    const p=packets[k];
+    if(p.dying){p.dying+=dt;const s=p.fail?1+p.dying*6:1-p.dying*2;p.m.scale.setScalar(Math.max(0.01,s));p.m.material.opacity=Math.max(0,1-p.dying*2);if(p.dying>0.5){scene.remove(p.m);p.m.material.dispose();packets.splice(k,1);}continue;}
+    const s=p.segs[p.i];
+    if(!p.checked){p.checked=true;p.stopAt=null;
+      if(p.i===0&&nodeStatus[s.from]==="down")p.stopAt=0.02;
+      else if(linkStatus[s.l.k]==="down")p.stopAt=0.5;
+      else if(nodeStatus[s.to]==="down")p.stopAt=0.97;
+      else if(nodeStatus[s.to]==="storm"&&Math.random()<0.45)p.stopAt=0.9;}
+    const slow=(nodeStatus[s.to]==="storm"||nodeStatus[s.from]==="storm")?0.35:1;
+    p.t+=dt*p.speed*slow/Math.max(0.5,s.l.len);
+    if(p.stopAt!==null&&p.t>=p.stopAt){p.t=p.stopAt;placePacket(p);killPacket(p,true);continue;}
+    if(p.t>=1){p.t=0;p.i++;p.checked=false;
+      if(p.i>=p.segs.length){
+        if(p.rt&&!p.back){p.back=true;p.segs=p.segs.slice().reverse().map(x=>({l:x.l,from:x.to,to:x.from}));p.i=0;p.m.material.color.setHex(C.resp);}
+        else{p.i=p.segs.length-1;p.t=1;placePacket(p);killPacket(p,false);continue;}
+      }}
+    placePacket(p);
+  }
+  for(let k=stormPk.length-1;k>=0;k--){const q=stormPk[k];q.life+=dt;q.t+=dt*1.6;if(q.t>1){q.t=0;q.leg^=1;}
+    const pt=q.leg?loopCurve.getPoint(q.t):LMAP[key("hq-asw1","hq-desksw")].curve.getPoint(1-q.t);q.m.position.copy(pt);
+    if(q.life>3||!loopObj.visible){scene.remove(q.m);q.m.material.dispose();stormPk.splice(k,1);}}
+}
+
+/* ---------- spawning schedule ---------- */
+let ALL_FLOWS=Object.keys(FLOWS);
+let tAmb=0,tSel=0,tFocus=0,tStorm=0;
+function schedule(dt){
+  tAmb+=dt;tSel+=dt;tFocus+=dt;tStorm+=dt;
+  if(ambient&&tAmb>(selFlow||scen?0.7:0.22)){tAmb=0;const f=FLOWS[ALL_FLOWS[(Math.random()*ALL_FLOWS.length)|0]];spawn(f.nodes,f.color,{rt:f.rt,speed:6+Math.random()*2});}
+  if(selFlow&&tSel>0.8){tSel=0;const f=FLOWS[selFlow];spawn(f.nodes,f.color,{rt:f.rt});}
+  if(scen&&tFocus>0.55){tFocus=0;
+    const ids=scen.focus;const f=FLOWS[ids[(Math.random()*ids.length)|0]];if(f)spawn(f.nodes,f.color,{rt:f.rt});
+    if(scen.extraFlows&&Math.random()<0.6)scen.extraFlows.forEach(x=>spawn(x,C.pos,{rt:true}));
+    if(scen.bad&&!scenState.fixed)scen.bad.forEach(x=>spawn(x,C.down,{speed:9}));}
+  if(loopObj.visible&&tStorm>0.08){tStorm=0;spawnStorm();}
+}
+
+/* ---------- highlight flow path ---------- */
+function setHighlight(ids){
+  const keys=new Set();if(ids){const r=resolve(ids);for(let i=0;i<r.length-1;i++)keys.add(key(r[i],r[i+1]));}
+  LINKS.forEach(l=>{l.mat.opacity=ids?(keys.has(l.k)?1:0.14):l.base;});
+}
+
+/* ---------- labels ---------- */
+const v3=new THREE.Vector3();
+function placeLabel(el,v,w,h){v3.copy(v).project(camera);if(v3.z>1||v3.x<-1.2||v3.x>1.2||v3.y<-1.2||v3.y>1.2){el.style.display="none";return;}el.style.display="";el.style.left=((v3.x+1)/2*w)+"px";el.style.top=((1-v3.y)/2*h)+"px";}
+function updateLabels(){
+  const w=stage.clientWidth,h=stage.clientHeight;
+  siteLabels.forEach(s=>placeLabel(s.el,s.v,w,h));
+  zoneLabels.forEach(s=>placeLabel(s.el,s.v,w,h));
+  const flowSet=selFlow?new Set(resolve(FLOWS[selFlow].nodes)):null;
+  NODES.forEach(n=>{
+    const st=nodeStatus[n.id];
+    const show=showAll||!n.site||n.id===selected||n.id===hovered||st!=="ok"||(flowSet&&flowSet.has(n.id))||(focusSet&&focusSet.has(n.id));
+    n.el.hidden=!show;if(!show)return;
+    n.el.className="lbl"+(n.site?"":" cloud")+(st==="down"?" down":st!=="ok"?" warn":"")+(n.id===selected?" sel":"");
+    v3.copy(n.pos);v3.y+=n.top+(n.site?0.1:0);placeLabel(n.el,v3,w,h);
+  });
+}
+
+/* ---------- camera views ---------- */
+const VIEWS={
+  overview:{p:[-3,30,40],t:[-3,2,0]},hq:{p:[-15,15,19],t:[-15,1,0]},
+  s1:{p:[10,10.5,-1.5],t:[10,1,-13]},s2:{p:[10,10.5,11.5],t:[10,1,0]},s3:{p:[10,10.5,24.5],t:[10,1,13]},
+  cloud:{p:[-3,15,20],t:[-3,10,-1]}};
+let tween=null;
+function fly(name){const v=VIEWS[name]||VIEWS.overview;
+  if(REDUCED){camera.position.set(...v.p);controls.target.set(...v.t);return;}
+  tween={t:0,p0:camera.position.clone(),t0:controls.target.clone(),p1:new THREE.Vector3(...v.p),t1:new THREE.Vector3(...v.t)};}
+function stepTween(dt){if(!tween)return;tween.t=Math.min(1,tween.t+dt/0.9);const e=tween.t<0.5?2*tween.t*tween.t:1-Math.pow(-2*tween.t+2,2)/2;
+  camera.position.lerpVectors(tween.p0,tween.p1,e);controls.target.lerpVectors(tween.t0,tween.t1,e);if(tween.t>=1)tween=null;}
+$("#views").addEventListener("click",e=>{const b=e.target.closest("button[data-view]");if(b)fly(b.dataset.view);});
+
+/* ---------- picking ---------- */
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
+function pick(ev){const r=canvas.getBoundingClientRect();mouse.x=((ev.clientX-r.left)/r.width)*2-1;mouse.y=-((ev.clientY-r.top)/r.height)*2+1;ray.setFromCamera(mouse,camera);
+  const hit=ray.intersectObjects(pickables,false)[0];return hit?hit.object.userData.node:null;}
+let downAt=null;
+canvas.addEventListener("pointerdown",e=>{downAt=[e.clientX,e.clientY];});
+canvas.addEventListener("pointerup",e=>{if(!downAt)return;const moved=Math.hypot(e.clientX-downAt[0],e.clientY-downAt[1]);downAt=null;if(moved>6)return;const id=pick(e);select(id);});
+let lastMove=0;
+canvas.addEventListener("pointermove",e=>{const now=performance.now();if(now-lastMove<50)return;lastMove=now;const id=pick(e);hovered=id;canvas.style.cursor=id?"pointer":"grab";});
+canvas.addEventListener("pointerleave",()=>{hovered=null;});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")select(null);});
+
+/* ---------- inspector ---------- */
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function select(id){
+  selected=id;const ins=$("#inspector");
+  if(!id){ins.hidden=true;return;}
+  const n=NMAP[id],T=TYPE[n.type],st=nodeStatus[id];
+  const conns=LINKS.filter(l=>l.a===id||l.b===id).map(l=>{const o=l.a===id?l.b:l.a;const dn=linkStatus[l.k]==="down";
+    return `<li><button data-go="${o}">${esc(NMAP[o].name)}</button> <span>· ${esc(KIND_NAME[l.kind])}${l.vlan&&l.kind!=="bt"?" · "+esc(VLAN_NAME[l.vlan]):""}${dn?" · <b style=\"color:var(--down)\">DOWN</b>":""}</span></li>`;}).join("");
+  const stTxt=st==="ok"?"Online":st==="down"?"Down":st==="storm"?"Overloaded":"Degraded";
+  const siteName=n.site?SITES[n.site].name:"Cloud";
+  ins.innerHTML=`<div class="ins-head"><div><div class="eyebrow">${esc(T.label)} · ${esc(siteName)}</div><h3>${esc(n.name)}</h3></div><button class="x" aria-label="Close" data-close>✕</button></div>
+   <span class="pill ${st==="ok"?"":st==="down"?"down":"warn"}">● ${stTxt}</span>
+   <dl class="kv"><dt>IP</dt><dd>${esc(n.ip||"—")}</dd><dt>Network</dt><dd>${esc(n.vlan||"—")}</dd><dt>Hardware</dt><dd>${esc(n.model||"—")}</dd></dl>
+   <p>${esc(n.role||T.role)}</p>
+   <h4>Connected to</h4><ul class="conn">${conns}</ul>
+   <h4>When it fails, check</h4><ol>${T.check.map(c=>`<li>${esc(c)}</li>`).join("")}</ol>`;
+  ins.hidden=false;
+}
+$("#inspector").addEventListener("click",e=>{if(e.target.closest("[data-close]"))select(null);const g=e.target.closest("[data-go]");if(g)select(g.dataset.go);});
+
+/* ---------- tabs ---------- */
+function showTab(name){
+  document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===name?"true":"false"));
+  ["role","explore","incidents","docs"].forEach(t=>{$("#tab-"+t).hidden=t!==name;});
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+
+/* ---------- explore: flows ---------- */
+function hexCss(c){return "#"+c.toString(16).padStart(6,"0");}
+function renderFlows(){
+  const list=$("#flowList");list.innerHTML="";
+  const items=[...STORE_FLOW_TYPES.map(ft=>storeSel+"-"+ft.t),...HQ_FLOWS];
+  items.forEach((id,idx)=>{
+    if(idx===STORE_FLOW_TYPES.length){const h=document.createElement("h2");h.textContent="HQ traffic";h.style.margin="10px 0 2px";list.appendChild(h);}
+    const f=FLOWS[id];const b=document.createElement("button");b.className="flow";b.setAttribute("aria-pressed",selFlow===id?"true":"false");
+    b.innerHTML=`<i class="dot" style="background:${hexCss(f.color)}"></i><span><b>${esc(f.name)}</b><small>${esc(f.sub)}</small></span>`;
+    b.addEventListener("click",()=>chooseFlow(selFlow===id?null:id));list.appendChild(b);
+  });
+}
+function chooseFlow(id){
+  selFlow=id;renderFlows();setHighlight(id?FLOWS[id].nodes:null);
+  const hops=$("#hops");
+  if(!id){hops.hidden=true;return;}
+  const f=FLOWS[id];const r=resolve(f.nodes);
+  hops.innerHTML=r.map((nid,i)=>`<li><b>${esc(NMAP[nid].name)}</b><span>${esc(f.notes[i]||"")}${nid!==f.nodes[i]?" (failover path)":""}</span></li>`).join("")+(f.rt?`<li><b>Response</b><span>The reply travels back along the same path (cyan packets).</span></li>`:"");
+  hops.hidden=false;
+  fly(f.store||"hq");
+}
+$("#storeSeg").addEventListener("click",e=>{const b=e.target.closest("button[data-store]");if(!b)return;storeSel=b.dataset.store;
+  document.querySelectorAll("#storeSeg button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
+  if(selFlow&&FLOWS[selFlow].store){const t=selFlow.split("-")[1];chooseFlow(storeSel+"-"+t);}else renderFlows();fly(storeSel);});
+$("#tgLabels").addEventListener("change",e=>{showAll=e.target.checked;});
+$("#tgWireless").addEventListener("change",e=>{LINKS.forEach(l=>{if(l.kind==="wifi"||l.kind==="bt"||l.kind==="cell")l.obj.visible=e.target.checked;});});
+$("#tgVpn").addEventListener("change",e=>{LINKS.forEach(l=>{if(l.kind==="vpn")l.obj.visible=e.target.checked;});});
+const tgA=$("#tgAmbient");tgA.checked=ambient;tgA.addEventListener("change",e=>{ambient=e.target.checked;});
+
+/* ---------- incidents ---------- */
+function renderIncList(){
+  const list=$("#incList");list.innerHTML="";
+  SCEN.forEach(s=>{const b=document.createElement("button");b.className="inc";
+    b.innerHTML=`<span class="sev ${s.sev}">${s.sev.toUpperCase()}</span><span><b>${esc(s.title)}</b><small>${esc(s.sub)}</small></span>${done[s.id]?'<span class="done">✓ solved</span>':"<span></span>"}`;
+    b.addEventListener("click",()=>startScen(s.id));list.appendChild(b);});
+}
+function resetNetwork(){
+  NODES.forEach(n=>nodeStatus[n.id]="ok");Object.keys(linkStatus).forEach(k=>delete linkStatus[k]);
+  scen=null;scenState=null;applyStatusVisuals();
+}
+function startScen(id){
+  endTour(true);clearFocus();renderRole();
+  resetNetwork();chooseFlow(null);
+  scen=SCEN.find(s=>s.id===id);scenState={run:new Set(),fixed:false,solved:false,tries:0,picked:null};
+  const ap=scen.apply;Object.entries(ap.nodes||{}).forEach(([k,v])=>nodeStatus[k]=v);(ap.links||[]).forEach(([a,b])=>linkStatus[key(a,b)]="down");
+  applyStatusVisuals();fly(scen.site==="all"?"overview":scen.site);
+  $("#incHome").hidden=true;$("#incActive").hidden=false;renderScen();
+  if(selected)select(selected);
+}
+function renderScen(){
+  const s=scen,S=scenState,box=$("#incActive");
+  const key=s.checks.filter(c=>c.tag==="clue").length;const found=s.checks.filter((c,i)=>c.tag==="clue"&&S.run.has(i)).length;
+  const risky=s.checks.filter((c,i)=>c.tag==="risk"&&S.run.has(i)).length;
+  let h=`<div class="row" style="justify-content:space-between"><button class="btn" data-act="back">← All incidents</button><button class="btn" data-act="reset">Reset network</button></div>
+   <section class="ticket"><div class="meta"><span class="sev ${s.sev}">${s.sev.toUpperCase()}</span><span>${esc(s.caller)}</span><span>${esc(s.time)}</span></div><q>“${esc(s.msg)}”</q></section>
+   <section><h2>Investigate</h2><div class="checks">`;
+  s.checks.forEach((c,i)=>{const r=S.run.has(i);
+    h+=`<div class="check"${r?" data-run":""}><button data-check="${i}" ${r?'aria-expanded="true"':""}>${esc(c.q)}</button>${r?`<div class="out"><span class="tag ${c.tag}">${c.tag==="clue"?"Useful clue":c.tag==="risk"?"Risky move":"Didn’t narrow it down"}</span>\n${esc(c.a)}</div>`:""}</div>`;});
+  h+=`</div><p class="score">${S.run.size} checks run · ${found}/${key} useful clues found${risky?` · ${risky} risky move${risky>1?"s":""}`:""}</p></section>
+   <section><h2>Make the call: root cause</h2><div class="opts">`;
+  s.opts.forEach((o,i)=>{h+=`<label for="opt-${s.id}-${i}"><input type="radio" name="rc" id="opt-${s.id}-${i}" value="${i}" ${S.picked===i?"checked":""} ${S.solved?"disabled":""}>${esc(o)}</label>`;});
+  h+=`</div>`;
+  if(!S.solved)h+=`<div class="row" style="margin-top:8px"><button class="btn primary" data-act="submit">Submit diagnosis</button></div>`;
+  if(S.wrong&&!S.solved)h+=`<div class="feedback bad" style="margin-top:8px"><b>Not quite.</b> ${esc(s.hint)}</div>`;
+  h+=`</section>`;
+  if(S.solved){
+    h+=`<section class="feedback good"><h3>Correct. Here’s the fix</h3><ol>${s.fix.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>
+     <h3>Stop it happening again</h3><ul>${s.prevent.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+     <div class="coach"><h3>In one sentence</h3><p class="say">${esc(s.say)}</p></div>
+     <div class="row" style="margin-top:10px">${S.fixed?`<span class="done">✓ Fix applied${s.afterNote?"":", traffic recovering"}</span>`:'<button class="btn primary" data-act="fix">Apply the fix</button>'}</div>
+     ${S.fixed&&s.afterNote?`<p style="margin:8px 0 0">${esc(s.afterNote)}</p>`:""}</section>`;
+  }
+  box.innerHTML=h;
+}
+$("#incActive").addEventListener("click",e=>{
+  const c=e.target.closest("[data-check]");if(c){scenState.run.add(+c.dataset.check);renderScen();return;}
+  const a=e.target.closest("[data-act]");if(!a)return;const act=a.dataset.act;
+  if(act==="back"){resetNetwork();$("#incActive").hidden=true;$("#incHome").hidden=false;renderIncList();fly("overview");}
+  else if(act==="reset"){startScen(scen.id);}
+  else if(act==="submit"){const r=document.querySelector('#incActive input[name="rc"]:checked');if(!r)return;scenState.picked=+r.value;
+    if(+r.value===scen.ans){scenState.solved=true;scenState.wrong=false;done[scen.id]=1;try{localStorage.setItem("rnlab-done",JSON.stringify(done));}catch(err){}}else{scenState.wrong=true;}renderScen();}
+  else if(act==="fix"){scenState.fixed=true;
+    if(scen.after){Object.entries(scen.after.nodes||{}).forEach(([k,v])=>nodeStatus[k]=v);}
+    else{NODES.forEach(n=>nodeStatus[n.id]="ok");Object.keys(linkStatus).forEach(k=>delete linkStatus[k]);}
+    applyStatusVisuals();renderScen();if(selected)select(selected);}
+});
+$("#incActive").addEventListener("change",e=>{if(e.target.name==="rc")scenState.picked=+e.target.value;});
+
+/* ---------- role tab ---------- */
+const SCEN_NAME={};SCEN.forEach(s=>SCEN_NAME[s.id]=s.sub);
+let roleOn=-1;
+function renderRole(){
+  const list=$("#roleList");list.innerHTML="";
+  ROLE.forEach((r,i)=>{
+    const d=document.createElement("div");d.className="role"+(roleOn===i?" on":"");
+    d.innerHTML=`<h3>${esc(r.t)}</h3><p class="jd">${esc(r.jd)}</p><p class="where"><b>In the model</b><br>${esc(r.where)}</p>
+     <div><span class="lbl2">How I’d handle it</span><ul>${r.do.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>
+     <div class="row"><button class="btn sm" data-show="${i}">${roleOn===i?"Hide":"Show"}</button>${r.drill?`<button class="btn sm" data-drill="${r.drill}">Drill: ${esc(SCEN_NAME[r.drill])}</button>`:""}${r.tab?`<button class="btn sm" data-tab-go="${r.tab}">Open Docs</button>`:""}</div>`;
+    list.appendChild(d);
+  });
+}
+function clearFocus(){focusSet=null;roleOn=-1;}
+$("#roleList").addEventListener("click",e=>{
+  const s=e.target.closest("[data-show]");
+  if(s){const i=+s.dataset.show;
+    if(roleOn===i){clearFocus();chooseFlow(null);renderRole();return;}
+    if(scen)leaveScen();endTour(true);
+    roleOn=i;const r=ROLE[i];focusSet=r.nodes?new Set(r.nodes):null;select(null);
+    chooseFlow(r.flow||null);fly(r.view);renderRole();return;}
+  const d=e.target.closest("[data-drill]");if(d){clearFocus();renderRole();endTour(true);showTab("incidents");startScen(d.dataset.drill);return;}
+  const t=e.target.closest("[data-tab-go]");if(t)showTab(t.dataset.tabGo);
+});
+function leaveScen(){resetNetwork();$("#incActive").hidden=true;$("#incHome").hidden=false;renderIncList();}
+
+/* ---------- inventory ---------- */
+let invSite="all";
+function renderInv(){
+  const rows=NODES.filter(n=>invSite==="all"||(invSite==="cloud"?!n.site:n.site===invSite));
+  $("#invBody").innerHTML=rows.map(n=>`<tr><td>${esc(n.name)}</td><td>${n.site?esc(SITES[n.site].name):"Cloud"}</td><td class="mono">${esc(n.ip||"—")}</td><td>${esc(n.model||TYPE[n.type].label)}</td></tr>`).join("");
+  const per=NODES.filter(n=>n.site==="s1").length,hq=NODES.filter(n=>n.site==="hq").length;
+  $("#invNote").textContent=`${rows.length} shown. Store template: ${per} devices × 23 stores = ${per*23}, plus ${hq} at HQ.`;
+}
+$("#invSeg").addEventListener("click",e=>{const b=e.target.closest("[data-inv]");if(!b)return;invSite=b.dataset.inv;
+  document.querySelectorAll("#invSeg button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));renderInv();});
+
+/* ---------- guided tour ---------- */
+let tourI=-1;
+function tourUndoTemp(){if(tourI>=0&&TOUR[tourI].temp){Object.keys(TOUR[tourI].temp).forEach(k=>nodeStatus[k]="ok");applyStatusVisuals();}}
+function tourShow(i){
+  tourUndoTemp();tourI=i;const s=TOUR[i];
+  if(s.temp){Object.entries(s.temp).forEach(([k,v])=>nodeStatus[k]=v);applyStatusVisuals();}
+  focusSet=s.nodes?new Set(s.nodes):null;select(null);chooseFlow(s.flow||null);fly(s.view);
+  $("#tourStep").textContent=`Tour · ${i+1} of ${TOUR.length}`;$("#tourTitle").textContent=s.title;$("#tourText").textContent=s.text;
+  $("#tourPrev").disabled=i===0;$("#tourNext").textContent=i===TOUR.length-1?"Finish":"Next";
+  $("#tour").hidden=false;$(".hint").hidden=true;
+}
+function endTour(silent){
+  if(tourI<0)return;tourUndoTemp();const last=TOUR[tourI];tourI=-1;
+  $("#tour").hidden=true;$(".hint").hidden=false;focusSet=null;chooseFlow(null);
+  if(!silent&&last.end){showTab(last.end);fly("overview");}
+}
+$("#tourBtn").addEventListener("click",()=>{if(scen)leaveScen();clearFocus();renderRole();tourShow(0);});
+$("#tourNext").addEventListener("click",()=>{if(tourI<TOUR.length-1)tourShow(tourI+1);else endTour(false);});
+$("#tourPrev").addEventListener("click",()=>{if(tourI>0)tourShow(tourI-1);});
+$("#tourEnd").addEventListener("click",()=>endTour(true));
+
+/* ---------- grow: open a new store from the template ---------- */
+let storeCount=3;
+const STORE_SLOTS=[[-15,-22],[-15,22],[-39,0],[-39,-17],[-39,17],[0,-24],[0,24],[-28,-26]];   // ring of positions around HQ
+function toast(html,ms){const t=$("#toast");t.innerHTML=html;t.hidden=false;clearTimeout(toast._t);if(ms)toast._t=setTimeout(()=>{t.hidden=true;},ms);}
+function addStore(){
+  storeCount++;const id="s"+storeCount;const num=20+storeCount;   // s4 → Store 24, s5 → Store 25 …
+  const slot=STORE_SLOTS[storeCount-4];if(!slot){storeCount--;toast("<b>That's plenty for the demo.</b> Reload the page to start again.",4000);return;}
+  const [x,z]=slot;
+  SITES[id]={name:"Store "+num,sub:`10.${num}.0.0/16 · new`,x,z,w:11,d:8.6,n:num};
+  VIEWS[id]={p:[x,10.5,z+11.5],t:[x,1,z]};
+  VIEWS.overview={p:[-12,46,66],t:[-12,2,0]};
+  const n0=NODES.length,l0=LINKS.length;
+  storeNodes(id);storeLinks(id);storeFlows(id);
+  buildSite(id,true);
+  NODES.slice(n0).forEach((n,i)=>{buildNode(n);nodeStatus[n.id]="ok";n.g.scale.setScalar(0.001);GROW.push({o:n.g,at:_clock+0.5+i*0.09,dur:0.45,all:true});});
+  LINKS.slice(l0).forEach((l,i)=>{buildLink(l);l.obj.visible=false;GROW.push({o:l.obj,at:_clock+1.7+i*0.05,show:true});});
+  ALL_FLOWS=Object.keys(FLOWS);
+  applyStatusVisuals();renderInv();
+  fly(id);
+  setTimeout(()=>{chooseFlow(id+"-ztd");},2600);
+  toast(`<b>Store ${num} built from the template.</b> Same hardware and VLANs, IP block 10.${num}.0.0/16, VPN to HQ, LTE backup, monitoring. Its back-office Mac is setting itself up through zero-touch.`,9000);
+  const b=$("#addStoreBtn");b.textContent=STORE_SLOTS[storeCount-3]?`+ Store ${num+1}`:"Stores full";
+}
+$("#addStoreBtn").addEventListener("click",()=>{if(scen)leaveScen();endTour(true);addStore();});
+
+/* ---------- presentation mode ---------- */
+function setPresent(on){
+  document.body.classList.toggle("present",on);$("#exitPresent").hidden=!on;
+  if(on){if(scen)leaveScen();clearFocus();renderRole();tourShow(0);try{const st=$("#stage");if(st.requestFullscreen)st.requestFullscreen().catch(()=>{});}catch(e){}}
+  else{endTour(true);try{if(document.fullscreenElement)document.exitFullscreen();}catch(e){}}
+}
+$("#presentBtn").addEventListener("click",()=>setPresent(true));
+$("#exitPresent").addEventListener("click",()=>setPresent(false));
+document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement&&document.body.classList.contains("present"))setPresent(false);});
+document.addEventListener("keydown",e=>{
+  if(tourI<0)return;
+  if(e.key==="ArrowRight"){e.preventDefault();if(tourI<TOUR.length-1)tourShow(tourI+1);else endTour(false);}
+  if(e.key==="ArrowLeft"){e.preventDefault();if(tourI>0)tourShow(tourI-1);}
+});
+
+/* ---------- loop ---------- */
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+new ResizeObserver(resize).observe(stage);resize();
+let last=performance.now(),clock=0;
+function frame(now){
+  const dt=Math.min(0.05,(now-last)/1000);last=now;clock+=dt;_clock=clock;
+  for(let i=GROW.length-1;i>=0;i--){const g=GROW[i];if(clock<g.at)continue;
+    if(g.show){g.o.visible=true;GROW.splice(i,1);continue;}
+    const t=Math.min(1,(clock-g.at)/(REDUCED?0.01:g.dur)),e=1-Math.pow(1-t,3);
+    if(g.all)g.o.scale.setScalar(Math.max(0.001,e));else g.o.scale.set(1,Math.max(0.001,e),1);
+    if(t>=1)GROW.splice(i,1);}
+  SIGNS.forEach(sg=>{const b=REDUCED?1:0.85+0.15*Math.sin(clock*0.9+sg.ph);sg.halo.material.opacity=0.4*b;sg.light.intensity=0.8*b;if(!REDUCED)sg.grp.position.y=sg.baseY+0.18*Math.sin(clock*0.7+sg.ph);});
+  stepTween(dt);controls.update();schedule(dt);updatePackets(dt);
+  NODES.forEach(n=>{const st=nodeStatus[n.id];let o=0,c=C.accent;
+    if(st!=="ok"){c=st==="down"?C.down:C.warn;o=0.45+0.4*Math.sin(clock*5);}
+    if(focusSet&&focusSet.has(n.id)&&st==="ok"){c=C.accent;o=Math.max(o,0.5+0.35*Math.sin(clock*3));}
+    if(n.id===selected){c=st==="ok"?C.accent:c;o=Math.max(o,0.9);}
+    n.halo.material.color.setHex(c);n.halo.material.opacity=o;});
+  const inet=NMAP.internet.g.children[1];if(inet&&!REDUCED)inet.rotation.y+=dt*0.15;
+  renderer.render(scene,camera);updateLabels();
+  requestAnimationFrame(frame);
+}
+renderFlows();renderIncList();renderRole();renderInv();applyStatusVisuals();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
